@@ -1,0 +1,137 @@
+/*
+ * Landing page — the few things Tailwind utilities can't express:
+ * pre-animation states, cursor spotlight, marquee and the hero field.
+ * Everything else is utility classes against the shared tokens in globals.css.
+ */
+
+/* Elements animated in by GSAP start hidden; reduced motion reveals them in JS. */
+.pre-anim {
+  visibility: hidden;
+}
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pre-anim {
+    visibility: visible;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Hero field: a dot lattice lit only around the cursor. No gradients blobs. */
+.hero-field {
+  --mx: 70%;
+  --my: 30%;
+  background-image: radial-gradient(rgb(255 255 255 / 0.16) 1px, transparent 1.2px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(420px circle at var(--mx) var(--my), #000, transparent 70%);
+  -webkit-mask-image: radial-gradient(420px circle at var(--mx) var(--my), #000, transparent 70%);
+}
+
+.hero-light {
+  background: radial-gradient(60% 55% at 50% 0%, rgb(255 255 255 / 0.07), transparent 70%);
+}
+
+/* Cursor spotlight: a lit hairline border plus a faint inner glow. */
+.spot {
+  --x: 50%;
+  --y: 50%;
+  isolation: isolate;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  transition: border-color 0.4s var(--ease-out-quart);
+}
+
+.spot::before,
+.spot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s var(--ease-out-quart);
+}
+
+.spot::before {
+  z-index: -1;
+  background: radial-gradient(320px circle at var(--x) var(--y), rgb(122 167 255 / 0.1), transparent 70%);
+}
+
+.spot::after {
+  padding: 1px;
+  background: radial-gradient(240px circle at var(--x) var(--y), rgb(255 255 255 / 0.5), transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+.spot:hover::before,
+.spot:hover::after {
+  opacity: 1;
+}
+
+/* Marquee: two copies side by side, translated by exactly one copy. */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 48s linear infinite;
+}
+
+.marquee-track[data-reverse="true"] {
+  animation-direction: reverse;
+  animation-duration: 56s;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-mask {
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+@keyframes live-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.live-ping {
+  animation: live-ping 2s var(--ease-out-quart) infinite;
+}
+
+/* Film grain on the closing scene only; cheap, static, and below content. */
+.grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
+
+/* Story stage: panels overlap only while the pinned timeline owns them. */
+[data-pinned="true"] .story-stage {
+  display: grid;
+}
+
+[data-pinned="true"] .story-panel {
+  grid-area: 1 / 1;
+}

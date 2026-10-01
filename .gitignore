@@ -1,9 +1,11 @@
 # Dependencies
 **/node_modules
 .pnpm-store/
-.sites-runtime/
 
 # Build outputs
+.next/
+out/
+next-env.d.ts
 dist/
 build/
 *.dist

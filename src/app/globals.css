@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Colour is evidence: neutrals carry the interface, and hue is
+ * reserved for meaning (PASS / REVIEW / BLOCK / info / model). Status colours
+ * always travel with an icon and a text label (see DecisionBadge) so meaning
+ * never depends on colour alone. Muted/faint text on `canvas` and `surface`
+ * stays above WCAG AA (4.5:1).
+ */
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
+
+  --color-canvas: #08090b;
+  --color-surface: #0e1013;
+  --color-raised: #15181d;
+  --color-line: #22262d;
+  --color-line-strong: #323843;
+
+  --color-ink: #eceef1;
+  --color-muted: #a3aab5;
+  --color-faint: #828a97;
+
+  --color-pass: #4ade9a;
+  --color-review: #f5b942;
+  --color-block: #ff6b81;
+  --color-info: #7aa7ff;
+  --color-model: #b39dff;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-info);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Evidence deep links (#event-ev-5) highlight the targeted timeline row. */
+  [id^="event-"] {
+    scroll-margin-top: 6rem;
+  }
+
+  [id^="event-"]:target {
+    background-color: color-mix(in oklab, var(--color-info) 10%, transparent);
+    outline: 1px solid color-mix(in oklab, var(--color-info) 45%, transparent);
+    border-radius: 8px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-info) 35%, transparent);
+  }
+}
+
+/* Lenis owns smooth scrolling on the landing page; native smooth scroll would fight it. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

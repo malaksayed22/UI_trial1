@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
 import { routes } from "@/lib/routes";
+import { introGate } from "./intro-gate";
 import { gsap, MOTION_OK, MOTION_REDUCED, SplitText, useGSAP } from "./motion";
 import { Magnetic } from "./primitives";
 import { TraceReplay } from "./trace-replay";
@@ -35,7 +36,7 @@ export const Hero = () => {
         const frame = q("[data-frame]");
         gsap.set([...fades, ...frame], { autoAlpha: 0 });
 
-        document.fonts.ready.then(() => {
+        Promise.all([document.fonts.ready, introGate]).then(() => {
           const headline = q("[data-headline]")[0];
           if (!headline) return;
           gsap.set(headline, { autoAlpha: 1 });

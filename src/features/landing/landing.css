@@ -12,6 +12,7 @@
 [data-reveal] {
   opacity: 0;
   transform: translateY(28px);
+  filter: blur(8px);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -22,6 +23,11 @@
   [data-reveal] {
     opacity: 1;
     transform: none;
+    filter: none;
+  }
+
+  .preloader {
+    display: none;
   }
 }
 
@@ -134,4 +140,16 @@
 
 [data-pinned="true"] .story-panel {
   grid-area: 1 / 1;
+}
+
+/* If JS never runs, the preloader must not trap the page. */
+.preloader {
+  animation: preloader-failsafe 0s 6s forwards;
+}
+
+@keyframes preloader-failsafe {
+  to {
+    visibility: hidden;
+    pointer-events: none;
+  }
 }

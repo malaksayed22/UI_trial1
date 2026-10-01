@@ -4,6 +4,8 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { CommandPalette, PaletteTrigger } from "@/components/command-palette";
+import { consolePaletteItems } from "@/components/palette-items";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { cn } from "@/lib/cn";
 import type { DataSourceKind, Viewer } from "@/types";
@@ -18,7 +20,11 @@ type AppShellProps = {
   children: ReactNode;
 };
 
-const roleText = { engineer: "Engineer", reviewer: "Reviewer", admin: "Admin" } as const;
+const roleText = {
+  engineer: "Engineer",
+  reviewer: "Reviewer",
+  admin: "Admin",
+} as const;
 
 export const AppShell = ({
   viewer,
@@ -32,6 +38,7 @@ export const AppShell = ({
   const [openedAt, setOpenedAt] = useState<string | null>(null);
   const drawerOpen = openedAt === pathname;
   const items = buildNavItems(pathname, featured);
+  const paletteItems = consolePaletteItems(items);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -105,7 +112,13 @@ export const AppShell = ({
                         : "border-transparent text-muted hover:bg-raised/60 hover:text-ink"
                     )}
                   >
-                    <Icon aria-hidden className={cn("size-4", active ? "text-ink" : "text-faint")} />
+                    <Icon
+                      aria-hidden
+                      className={cn(
+                        "size-4",
+                        active ? "text-ink" : "text-faint"
+                      )}
+                    />
                     {label}
                     <span className="ml-auto font-mono text-xs text-faint">
                       {number}
@@ -148,6 +161,8 @@ export const AppShell = ({
         )}
       </aside>
 
+      <CommandPalette items={paletteItems} />
+
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-line bg-canvas/85 px-5 backdrop-blur sm:px-8">
           <div className="flex items-center gap-3">
@@ -165,21 +180,24 @@ export const AppShell = ({
               TrustOps <span aria-hidden>›</span> Reliability console
             </p>
           </div>
-          <p
-            title={
-              dataSource === "fixture"
-                ? "Values come from reviewed fixtures, not live evaluation results."
-                : "Values come from the live platform API."
-            }
-            className={cn(
-              "rounded-full border px-3 py-1 font-mono text-xs",
-              dataSource === "fixture"
-                ? "border-review/40 bg-review/10 text-review"
-                : "border-pass/40 bg-pass/10 text-pass"
-            )}
-          >
-            {dataSource === "fixture" ? "Fixture data" : "Live API"}
-          </p>
+          <div className="flex items-center gap-3">
+            <PaletteTrigger />
+            <p
+              title={
+                dataSource === "fixture"
+                  ? "Values come from reviewed fixtures, not live evaluation results."
+                  : "Values come from the live platform API."
+              }
+              className={cn(
+                "rounded-full border px-3 py-1 font-mono text-xs",
+                dataSource === "fixture"
+                  ? "border-review/40 bg-review/10 text-review"
+                  : "border-pass/40 bg-pass/10 text-pass"
+              )}
+            >
+              {dataSource === "fixture" ? "Fixture data" : "Live API"}
+            </p>
+          </div>
         </header>
 
         <main id="main" className="mx-auto max-w-[1480px] px-5 py-8 sm:px-8">

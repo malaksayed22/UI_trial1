@@ -1,12 +1,22 @@
 "use client";
 
 import { useRef, type RefObject } from "react";
+import { CommandPalette } from "@/components/command-palette";
+import { landingPaletteItems } from "@/components/palette-items";
 import { Closing } from "./closing";
 import { Hero } from "./hero";
 import { LandingNav } from "./landing-nav";
 import { Method } from "./method";
-import { gsap, MOTION_OK, MOTION_REDUCED, ScrollTrigger, useGSAP } from "./motion";
+import {
+  gsap,
+  MOTION_OK,
+  MOTION_REDUCED,
+  ScrollTrigger,
+  useGSAP,
+} from "./motion";
+import { Preloader } from "./preloader";
 import { Screens } from "./screens";
+import { SectionIsland } from "./section-island";
 import { Story } from "./story";
 import { useSmoothScroll } from "./use-smooth-scroll";
 import "./landing.css";
@@ -24,7 +34,18 @@ const useScrollReveals = (scope: RefObject<HTMLElement | null>) => {
           start: "top 90%",
           once: true,
           onEnter: batch =>
-            gsap.to(batch, { opacity: 1, y: 0, duration: 1, stagger: 0.09, ease: "expo.out", overwrite: true }),
+            gsap.to(batch, {
+              opacity: 1,
+              y: 0,
+              filter: "blur(0px)",
+              duration: 1.1,
+              stagger: 0.09,
+              ease: "expo.out",
+              overwrite: true,
+              onComplete: () => {
+                gsap.set(batch, { filter: "none" });
+              },
+            }),
         });
         document.fonts.ready.then(() => ScrollTrigger.refresh());
       });
@@ -40,7 +61,10 @@ export const Landing = () => {
 
   return (
     <div ref={root} className="relative bg-canvas text-ink">
+      <Preloader />
       <LandingNav />
+      <CommandPalette items={landingPaletteItems} />
+      <SectionIsland />
       <main>
         <Hero />
         <Story />

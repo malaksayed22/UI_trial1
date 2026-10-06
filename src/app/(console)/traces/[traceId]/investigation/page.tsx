@@ -56,12 +56,12 @@ const InvestigationPage = async ({ params }: InvestigationPageProps) => {
       <div className="space-y-4">
         <PrimaryFailure investigation={investigation} />
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <RcaRanking traceId={traceId} causes={investigation.rca} />
           <DecisionPath traceId={traceId} steps={investigation.decisionPath} />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <PolicyFindings
             traceId={traceId}
             findings={investigation.ruleFindings}

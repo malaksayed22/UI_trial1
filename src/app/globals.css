@@ -79,6 +79,19 @@
   }
 }
 
+/*
+ * Edge shadows that appear only while a horizontal scroller has more content
+ * on that side. The "local" layers are surface-coloured covers that scroll with
+ * the content and hide the fixed "scroll" shadows once an edge is reached.
+ */
+@utility scroll-shadow-x {
+  background:
+    linear-gradient(to right, var(--color-surface) 30%, transparent) left center / 2.5rem 100% no-repeat local,
+    linear-gradient(to left, var(--color-surface) 30%, transparent) right center / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgb(255 255 255 / 0.1), transparent) left center / 0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(255 255 255 / 0.1), transparent) right center / 0.75rem 100% no-repeat scroll;
+}
+
 /* Lenis owns smooth scrolling on the landing page; native smooth scroll would fight it. */
 html.lenis,
 html.lenis body {

@@ -55,7 +55,7 @@ export const VersionComparison = ({
       title="Baseline versus candidate"
       subtitle={`Same dataset (${datasetVersion}) and evaluator set (${evaluatorSetVersion}) for both`}
     />
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Configuration title="Approved baseline" configuration={baseline} />
       <Configuration
         title="Candidate"

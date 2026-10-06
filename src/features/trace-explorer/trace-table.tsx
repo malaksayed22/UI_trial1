@@ -23,9 +23,41 @@ const PolicyVerdict = ({ verdict }: { verdict: PolicySecurityVerdict }) => {
   }
 };
 
-type TraceTableProps = { traces: TraceSummary[] };
+type TraceListProps = { traces: TraceSummary[] };
 
-export const TraceTable = ({ traces }: TraceTableProps) => (
+/** Phones get one card per trace so the decision is visible without sideways scrolling. */
+const TraceCards = ({ traces }: TraceListProps) => (
+  <ul aria-label="Traces" className="space-y-2 md:hidden">
+    {traces.map(trace => (
+      <li
+        key={trace.traceId}
+        className="relative rounded-xl border border-line bg-raised/40 p-4 transition-colors hover:bg-info/5"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <Link
+            href={routes.trace(trace.traceId)}
+            className="font-mono text-sm text-info after:absolute after:inset-0 hover:underline"
+          >
+            {trace.traceId}
+          </Link>
+          <DecisionBadge decision={trace.decision} size="sm" />
+        </div>
+        <p className="mt-2 text-sm text-ink">{describeFailureLabel(trace.failureLabel)}</p>
+        <p className="mt-1 text-xs text-muted">
+          {trace.applicationName} · <span className="font-mono">{trace.appVersion}</span>
+        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 whitespace-nowrap">
+          <time dateTime={trace.startedAt} className="font-mono text-xs text-faint">
+            {formatDateTime(trace.startedAt)}
+          </time>
+          <PolicyVerdict verdict={trace.policySecurityVerdict} />
+        </div>
+      </li>
+    ))}
+  </ul>
+);
+
+const TraceRows = ({ traces }: TraceListProps) => (
   <TableScroll label="Traces">
     <table className="w-full min-w-[820px]">
       <caption className="sr-only">
@@ -73,4 +105,13 @@ export const TraceTable = ({ traces }: TraceTableProps) => (
       </tbody>
     </table>
   </TableScroll>
+);
+
+export const TraceTable = ({ traces }: TraceListProps) => (
+  <>
+    <TraceCards traces={traces} />
+    <div className="hidden md:block">
+      <TraceRows traces={traces} />
+    </div>
+  </>
 );

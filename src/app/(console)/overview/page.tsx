@@ -32,7 +32,7 @@ const OverviewPage = async () => {
         description="Where is reliability deteriorating across both reference applications?"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           icon={Activity}
           label="Traces evaluated"
@@ -71,12 +71,12 @@ const OverviewPage = async () => {
         />
       </Panel>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1.55fr_1fr]">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.55fr_1fr]">
         <ReliabilityTrend points={overview.trend} />
         <FailureClasses classes={overview.failureClasses} />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
         <ApplicationPulse applications={overview.applications} />
         <RecentGates gates={overview.recentGates} />
       </div>

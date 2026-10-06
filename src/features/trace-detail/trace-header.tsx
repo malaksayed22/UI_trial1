@@ -16,11 +16,20 @@ export const TraceHeader = ({ trace }: TraceHeaderProps) => {
   return (
     <header className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-start">
       <div>
-        <p className="font-mono text-xs uppercase tracking-wider text-faint">
-          {summary.traceId} · {summary.applicationName}
+        <p className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.14em] text-faint">
+          <span aria-hidden className="h-px w-5 bg-line-strong" />
+          Screen 04 · Trace Detail
         </p>
-        <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="mt-2 max-w-3xl text-3xl font-medium tracking-[-0.03em] text-ink sm:text-[2.6rem]">
+          {title}
+        </h1>
         <p className="mt-2 text-sm text-muted">
+          <span className="font-mono text-xs uppercase tracking-wider text-faint">
+            {summary.traceId}
+          </span>
+          {" · "}
+          {summary.applicationName}
+          {" · "}
           Started{" "}
           <time dateTime={summary.startedAt}>{formatDateTime(summary.startedAt)}</time>
           {" · "}

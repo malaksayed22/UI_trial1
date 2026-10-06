@@ -61,7 +61,7 @@ export const ApplicationCard = ({ application }: ApplicationCardProps) => {
         ))}
       </dl>
 
-      <div className="mt-6 grid gap-6 border-t border-line pt-5 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 border-t border-line pt-5 lg:grid-cols-2">
         <div>
           <h3 className="mb-3 text-sm font-medium">
             Trace decisions · {formatInteger(application.traceCount)} traces, 30 days

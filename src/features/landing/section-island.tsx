@@ -19,9 +19,12 @@ type SectionId = (typeof sections)[number]["id"];
 export const SectionIsland = () => {
   const anchor = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState<SectionId>("top");
-  const [visible, setVisible] = useState(false);
+  const [pastIntro, setPastIntro] = useState(false);
+  const [atEnd, setAtEnd] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const reduceMotion = useReducedMotion();
+  // The dock would cover the closing call to action and footer, so it steps aside there.
+  const visible = pastIntro && !atEnd;
 
   useGSAP(
     () => {
@@ -46,10 +49,19 @@ export const SectionIsland = () => {
             trigger: how,
             start: "top 85%",
             refreshPriority: -1,
-            onUpdate: self => setVisible(self.progress > 0),
+            onUpdate: self => setPastIntro(self.progress > 0),
           })
         : undefined;
-      return () => [...triggers, reveal].forEach(trigger => trigger?.kill());
+      const closing = find("closing");
+      const conceal = closing
+        ? ScrollTrigger.create({
+            trigger: closing,
+            start: "top 80%",
+            refreshPriority: -1,
+            onToggle: self => setAtEnd(self.isActive),
+          })
+        : undefined;
+      return () => [...triggers, reveal, conceal].forEach(trigger => trigger?.kill());
     },
     { scope: anchor }
   );
@@ -109,7 +121,7 @@ export const SectionIsland = () => {
               type="button"
               onClick={openCommandPalette}
               aria-label="Open command palette"
-              className="ml-1 rounded-full border border-line-strong px-2.5 py-1.5 font-mono text-[11px] text-faint transition-colors duration-150 hover:text-ink"
+              className="ml-1 rounded-full border border-line-strong px-2.5 py-1.5 font-mono text-[11px] text-faint transition-colors duration-150 hover:text-ink pointer-coarse:hidden"
             >
               ⌘K
             </button>

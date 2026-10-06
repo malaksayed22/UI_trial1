@@ -59,7 +59,7 @@ const RagDiagnosticsPage = async ({ params }: RagPageProps) => {
       <div className="space-y-4">
         <QueryAndAnswer diagnostics={diagnostics} />
         <FailureModePanel diagnostics={diagnostics} />
-        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4">
             <RetrievalTable
               documents={diagnostics.documents}

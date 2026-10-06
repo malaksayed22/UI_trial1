@@ -161,7 +161,7 @@ const GatePanel = () => (
   </div>
 );
 
-const STEP_DIM = 0.32;
+const STEP_DIM = 0.55;
 const TRANSITION = 0.9;
 
 export const Story = () => {

@@ -35,7 +35,7 @@ export const ReviewSection = ({
         </span>
       }
     />
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div>
         <h3 className="mb-3 text-sm font-medium text-ink">
           Review history ({history.length})

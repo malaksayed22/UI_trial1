@@ -46,14 +46,14 @@ const TraceDetailPage = async ({ params }: TraceDetailPageProps) => {
       <TraceHeader trace={trace} />
       <TraceTabs traceId={traceId} current="detail" />
 
-      <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <TraceTimeline trace={trace} />
         <TraceGraph traceId={traceId} graph={trace.graph} />
       </div>
 
       <div className="mt-4 space-y-4">
         <EvaluatorEvidence traceId={traceId} results={trace.evaluators} />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <PolicyFindings traceId={traceId} findings={trace.policyFindings} />
           <SecurityFindings traceId={traceId} findings={trace.securityFindings} />
         </div>

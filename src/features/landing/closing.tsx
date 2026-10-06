@@ -43,7 +43,7 @@ export const Closing = () => {
   );
 
   return (
-    <section ref={root} className="relative overflow-hidden border-t border-line">
+    <section id="closing" ref={root} className="relative overflow-hidden border-t border-line">
       <div aria-hidden className="grain pointer-events-none absolute inset-0" />
       <div
         aria-hidden

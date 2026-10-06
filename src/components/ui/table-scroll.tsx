@@ -6,13 +6,16 @@ type TableScrollProps = {
   children: ReactNode;
 };
 
-/** Keyboard-focusable horizontal scroller so wide tables stay usable on phones. */
+/**
+ * Keyboard-focusable horizontal scroller so wide tables stay usable on phones.
+ * Edge shadows signal when more columns are hidden off-screen.
+ */
 export const TableScroll = ({ label, children }: TableScrollProps) => (
   <div
     role="region"
     aria-label={label}
     tabIndex={0}
-    className="overflow-x-auto rounded-md"
+    className="scroll-shadow-x overflow-x-auto rounded-md"
   >
     {children}
   </div>

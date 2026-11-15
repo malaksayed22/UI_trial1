@@ -3,7 +3,7 @@ import { ApiError } from "@/lib/api/errors";
 import { VIEWER } from "@/mocks/fixtures";
 import { queryTraces, resolveMock } from "@/mocks/handlers";
 import { appendReview, listAppendedReviews, resetReviewStore } from "@/mocks/review-store";
-import type { Investigation, Viewer } from "@/types";
+import type { Investigation, RagDiagnostics, Viewer } from "@/types";
 
 describe("trace list contract", () => {
   it("returns newest first with a deterministic tie-break", () => {
@@ -33,7 +33,7 @@ describe("trace list contract", () => {
   it("searches trace id, application, version and failure text", () => {
     expect(queryTraces({ q: "8f21" }).total).toBe(1);
     expect(queryTraces({ q: "retrieval failure" }).total).toBe(1);
-    expect(queryTraces({ q: "app-v1.9.0" }).total).toBe(2);
+    expect(queryTraces({ q: "app-v1.9.0" }).total).toBe(4);
     expect(queryTraces({ q: "no-such-trace" }).total).toBe(0);
   });
 
@@ -41,9 +41,17 @@ describe("trace list contract", () => {
     const first = queryTraces({ pageSize: 3, page: 1 });
     const last = queryTraces({ pageSize: 3, page: 99 });
     expect(first.items).toHaveLength(3);
-    expect(first.total).toBe(7);
-    expect(last.page).toBe(3);
+    expect(first.total).toBe(13);
+    expect(last.page).toBe(5);
     expect(last.items).toHaveLength(1);
+  });
+
+  it("keeps UNAVAILABLE separate from PASS and NOT_APPLICABLE when filtering", () => {
+    const unavailable = queryTraces({ policySecurityVerdict: "UNAVAILABLE" });
+    expect(unavailable.items.map(trace => trace.traceId)).toEqual(["trace-c35e8a90"]);
+    expect(queryTraces({ policySecurityVerdict: "PASS" }).items.map(t => t.traceId)).not.toContain(
+      "trace-c35e8a90"
+    );
   });
 
   it("exposes facets from the full dataset, not the filtered page", () => {
@@ -64,6 +72,21 @@ describe("api error model", () => {
     await expect(
       resolveMock({ method: "GET", path: "/traces/trace-8f21c9a4/rag", query: {} })
     ).rejects.toMatchObject({ kind: "not_applicable" });
+  });
+
+  it("serves RAG diagnostics for abstained and technically failed traces", async () => {
+    const abstained = (await resolveMock({
+      method: "GET",
+      path: "/traces/trace-e5a7c302/rag",
+      query: {},
+    })) as RagDiagnostics;
+    const failed = (await resolveMock({
+      method: "GET",
+      path: "/traces/trace-f9b1d7a4/rag",
+      query: {},
+    })) as RagDiagnostics;
+    expect(abstained.outcome.kind).toBe("abstained");
+    expect(failed.outcome.kind).toBe("technical_failure");
   });
 
   it("treats summary-only traces as unavailable detail", async () => {

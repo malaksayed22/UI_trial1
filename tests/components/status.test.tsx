@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { DecisionBadge } from "@/components/ui/decision-badge";
 import { MeasurementValue } from "@/components/ui/measurement-value";
+import { TraceHeader } from "@/features/trace-detail/trace-header";
+import { traceDetails } from "@/mocks/fixtures";
 import { formatDelta, formatScore } from "@/lib/format";
 import type { GateVerdict, Measurement } from "@/types";
 
@@ -89,5 +91,22 @@ describe("number formatting", () => {
     expect(formatDelta(-0.12)).toBe("−0.12");
     expect(formatDelta(0.05)).toBe("+0.05");
     expect(formatDelta(0)).toBe("0.00");
+  });
+});
+
+describe("TraceHeader", () => {
+  it("shows the policy / security verdict beside the reliability decision", () => {
+    render(<TraceHeader trace={traceDetails["trace-c35e8a90"]!} />);
+    expect(screen.getByText("Policy / security verdict")).toBeInTheDocument();
+    expect(screen.getByText("Unavailable")).toBeVisible();
+    expect(screen.getByTitle(/not a pass/i)).toBeInTheDocument();
+  });
+
+  it("keeps NOT_APPLICABLE and PASS as different statements", () => {
+    const { unmount } = render(<TraceHeader trace={traceDetails["trace-9a03e771"]!} />);
+    expect(screen.getByText("Pass")).toBeVisible();
+    unmount();
+    render(<TraceHeader trace={traceDetails["trace-e5a7c302"]!} />);
+    expect(screen.getByText("Not applicable")).toBeVisible();
   });
 });

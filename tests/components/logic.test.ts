@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildNavItems, traceInContext } from "@/components/navigation/nav-items";
 import { visiblePages } from "@/components/ui/pagination";
 import { presentEvent } from "@/features/trace-detail/event-presenter";
-import { segmentAnswer } from "@/features/rag/answer-segments";
+import { splitBySpans } from "@/features/rag/answer-segments";
 import { activeFilterCount, parseTraceQuery, traceListHref } from "@/features/trace-explorer/query";
 import { pickFeaturedTraces } from "@/lib/featured-traces";
 import { traceDetails, traceSummaries } from "@/mocks/fixtures";
@@ -57,22 +57,40 @@ describe("event presentation", () => {
   });
 });
 
-describe("answer segmentation", () => {
-  it("marks only the unsupported claim", () => {
-    const segments = segmentAnswer("Limit is $4,200, and receipts are due in 30 days.", [
-      "receipts are due in 30 days",
+describe("span splitting", () => {
+  const text = "Limit is $4,200, and receipts are due in 30 days.";
+
+  it("splits at exact offsets and keeps every character", () => {
+    const claim = "receipts are due in 30 days";
+    const start = text.indexOf(claim);
+    const segments = splitBySpans(text, [
+      { span: { start, end: start + claim.length }, value: "claim-1" },
     ]);
-    expect(segments.filter(segment => segment.unsupported)).toEqual([
-      { text: "receipts are due in 30 days", unsupported: true },
+    expect(segments.filter(segment => segment.value)).toEqual([
+      { text: claim, value: "claim-1" },
     ]);
-    expect(segments.map(segment => segment.text).join("")).toBe(
-      "Limit is $4,200, and receipts are due in 30 days."
-    );
+    expect(segments.map(segment => segment.text).join("")).toBe(text);
   });
 
-  it("leaves the answer intact when a claim is not found verbatim", () => {
-    expect(segmentAnswer("Plain answer", ["something else"])).toEqual([
-      { text: "Plain answer", unsupported: false },
+  it("does not search for text: an offset that points elsewhere highlights elsewhere", () => {
+    const [, marked] = splitBySpans(text, [{ span: { start: 3, end: 8 }, value: "x" }]);
+    expect(marked).toEqual({ text: text.slice(3, 8), value: "x" });
+  });
+
+  it("drops out-of-range, empty and overlapping spans instead of guessing", () => {
+    const segments = splitBySpans("Plain answer", [
+      { span: { start: 0, end: 99 }, value: "too long" },
+      { span: { start: 4, end: 4 }, value: "empty" },
+      { span: { start: -1, end: 3 }, value: "negative" },
+    ]);
+    expect(segments).toEqual([{ text: "Plain answer", value: null }]);
+
+    const overlapping = splitBySpans("abcdefgh", [
+      { span: { start: 0, end: 5 }, value: "first" },
+      { span: { start: 3, end: 7 }, value: "second" },
+    ]);
+    expect(overlapping.filter(segment => segment.value).map(segment => segment.value)).toEqual([
+      "first",
     ]);
   });
 });

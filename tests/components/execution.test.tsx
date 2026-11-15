@@ -55,6 +55,20 @@ describe("action lifecycle", () => {
     expect(screen.queryByText(/No effect/)).not.toBeInTheDocument();
   });
 
+  it("shows a failed invocation as invoked and failed, separate from suppressed and unconfirmed", () => {
+    // No fixture trace has a failed invocation, so this uses a derived record.
+    const base = trace(SUCCESS).actions[0]!;
+    const failed: ActionRecord = {
+      ...base,
+      invocation: { status: "invoked", eventId: "ev-6", result: "failed" },
+    };
+    render(<ActionLifecycle traceId={SUCCESS} actions={[failed]} />);
+    expect(screen.getByText("Invoked · failed")).toBeInTheDocument();
+    expect(screen.queryByText("Invoked · unconfirmed")).not.toBeInTheDocument();
+    expect(screen.queryByText("Suppressed · not executed")).not.toBeInTheDocument();
+    expect(screen.getByText(/the tool reported a failure/)).toBeInTheDocument();
+  });
+
   it("links an action to its approval record and back", () => {
     const detail = trace(SUCCESS);
     render(<ActionLifecycle traceId={SUCCESS} actions={detail.actions} />);

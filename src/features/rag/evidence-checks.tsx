@@ -1,7 +1,6 @@
 import { CheckCircle2, XCircle } from "lucide-react";
 import { MeasurementValue } from "@/components/ui/measurement-value";
 import { Panel, PanelHeader } from "@/components/ui/panel";
-import { Tag } from "@/components/ui/tag";
 import { ragFailureModeText } from "@/lib/labels";
 import type { RagDiagnostics } from "@/types";
 
@@ -14,6 +13,11 @@ export const ExpectedEvidencePanel = ({ items }: ExpectedEvidenceProps) => (
       title="Expected evidence"
       subtitle="Scenario ground truth for this query"
     />
+    {items.length === 0 && (
+      <p className="text-sm text-muted">
+        No expected evidence is defined for this query, so retrieval recall does not apply.
+      </p>
+    )}
     <ul className="space-y-3">
       {items.map(item => (
         <li key={item.documentRef} className="flex items-start gap-3">
@@ -28,39 +32,6 @@ export const ExpectedEvidencePanel = ({ items }: ExpectedEvidenceProps) => (
               {item.retrieved ? `Retrieved · rank #${item.rank}` : "Not retrieved"}
             </p>
           </div>
-        </li>
-      ))}
-    </ul>
-  </Panel>
-);
-
-type CitationsProps = { citations: RagDiagnostics["citations"] };
-
-export const CitationsPanel = ({ citations }: CitationsProps) => (
-  <Panel aria-labelledby="citations-heading">
-    <PanelHeader
-      headingId="citations-heading"
-      title="Citations"
-      subtitle="Each answer claim mapped to its source document"
-    />
-    <ul className="divide-y divide-line">
-      {citations.map(citation => (
-        <li
-          key={citation.claim}
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 first:pt-0 last:pb-0"
-        >
-          <span className="text-sm text-ink">“{citation.claim}”</span>
-          <span className="ml-auto flex items-center gap-2">
-            <span className="font-mono text-xs text-muted">
-              {citation.documentId ? `→ ${citation.documentId}` : "no source"}
-            </span>
-            <Tag
-              tone={citation.status === "supported" ? "pass" : "review"}
-              icon={citation.status === "supported" ? CheckCircle2 : XCircle}
-            >
-              {citation.status === "supported" ? "Supported" : "Unsupported"}
-            </Tag>
-          </span>
         </li>
       ))}
     </ul>
@@ -100,9 +71,13 @@ export const MetricsPanel = ({ diagnostics }: MetricsProps) => (
 
 type FailureModeProps = { diagnostics: RagDiagnostics };
 
-/** Separates retrieval failure, weak context and unsupported generation. */
+/**
+ * Separates retrieval failure, weak context and unsupported generation, and
+ * keeps all three apart from a technical failure of the pipeline itself.
+ */
 export const FailureModePanel = ({ diagnostics }: FailureModeProps) => {
   const mode = ragFailureModeText[diagnostics.failureMode];
+  const unsupported = diagnostics.claims.filter(claim => claim.status === "unsupported");
   return (
     <Panel aria-labelledby="failure-mode-heading">
       <PanelHeader
@@ -112,16 +87,16 @@ export const FailureModePanel = ({ diagnostics }: FailureModeProps) => {
       />
       <p className="text-base font-medium text-ink">{mode.title}</p>
       <p className="mt-1 text-sm text-muted">{mode.description}</p>
-      {diagnostics.unsupportedClaims.length > 0 && (
+      {unsupported.length > 0 && (
         <div
           role="note"
           className="mt-4 rounded-lg border border-review/40 bg-review/10 p-3 text-sm"
         >
           <p className="font-medium text-review">Unsupported claims</p>
           <ul className="mt-1.5 space-y-1.5 text-muted">
-            {diagnostics.unsupportedClaims.map(item => (
-              <li key={item.claim}>
-                “{item.claim}” <span className="text-faint">— {item.reason}</span>
+            {unsupported.map(claim => (
+              <li key={claim.claimId}>
+                “{claim.text}” <span className="text-faint">— {claim.reason}</span>
               </li>
             ))}
           </ul>

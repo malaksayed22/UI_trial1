@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { ApiErrorNotice } from "@/components/ui/api-error-notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { VersionChip } from "@/components/ui/version-chip";
+import { ClaimExplorer } from "@/features/rag/claim-explorer";
 import {
-  CitationsPanel,
   ExpectedEvidencePanel,
   FailureModePanel,
   MetricsPanel,
@@ -58,6 +58,14 @@ const RagDiagnosticsPage = async ({ params }: RagPageProps) => {
 
       <div className="space-y-4">
         <QueryAndAnswer diagnostics={diagnostics} />
+        {diagnostics.answer !== null && diagnostics.claims.length > 0 && (
+          <ClaimExplorer
+            answer={diagnostics.answer}
+            claims={diagnostics.claims}
+            sources={diagnostics.sources}
+            documents={diagnostics.documents}
+          />
+        )}
         <FailureModePanel diagnostics={diagnostics} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4">
@@ -65,8 +73,11 @@ const RagDiagnosticsPage = async ({ params }: RagPageProps) => {
               documents={diagnostics.documents}
               retrieverVersion={diagnostics.retrieverVersion}
               k={diagnostics.k}
+              retrievalFailed={
+                diagnostics.outcome.kind === "technical_failure" &&
+                diagnostics.outcome.stage === "retrieval"
+              }
             />
-            <CitationsPanel citations={diagnostics.citations} />
           </div>
           <div className="space-y-4">
             <ExpectedEvidencePanel items={diagnostics.expectedEvidence} />

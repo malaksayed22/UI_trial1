@@ -1,14 +1,18 @@
 import { Panel } from "@/components/ui/panel";
 import type { RagDiagnostics } from "@/types";
-import { segmentAnswer } from "./answer-segments";
+import { RagOutcomeNotice, RagOutcomeTag } from "./rag-outcome";
 
 type QueryAndAnswerProps = { diagnostics: RagDiagnostics };
 
+/**
+ * The query and what the pipeline did with it. When claims exist the answer
+ * itself is shown in the claim explorer, where each claim can be followed to
+ * its source, so it is not repeated here.
+ */
 export const QueryAndAnswer = ({ diagnostics }: QueryAndAnswerProps) => {
-  const segments = segmentAnswer(
-    diagnostics.answer,
-    diagnostics.unsupportedClaims.map(item => item.claim)
-  );
+  const { answer, claims, outcome } = diagnostics;
+  const showsAnswer = claims.length === 0;
+
   return (
     <Panel aria-labelledby="query-heading">
       <h2 id="query-heading" className="font-mono text-xs uppercase tracking-wider text-faint">
@@ -16,25 +20,26 @@ export const QueryAndAnswer = ({ diagnostics }: QueryAndAnswerProps) => {
       </h2>
       <p className="mt-2 text-base italic text-ink">“{diagnostics.query}”</p>
 
-      <h3 className="mt-5 font-mono text-xs uppercase tracking-wider text-faint">
-        Generated answer
-      </h3>
-      <p className="mt-2 border-l-2 border-info/60 pl-3 text-sm leading-6 text-muted">
-        {segments.map((segment, index) =>
-          segment.unsupported ? (
-            <mark
-              key={index}
-              className="rounded bg-review/20 px-0.5 text-review underline decoration-dotted underline-offset-4"
-              title="No retrieved document supports this claim"
-            >
-              {segment.text}
-              <span className="sr-only"> (unsupported claim)</span>
-            </mark>
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <h3 className="font-mono text-xs uppercase tracking-wider text-faint">Outcome</h3>
+        <RagOutcomeTag outcome={outcome} />
+      </div>
+      <RagOutcomeNotice outcome={outcome} />
+
+      {showsAnswer && (
+        <>
+          <h3 className="mt-5 font-mono text-xs uppercase tracking-wider text-faint">
+            Generated answer
+          </h3>
+          {answer === null ? (
+            <p className="mt-2 text-sm text-muted">The model produced no answer for this trace.</p>
           ) : (
-            <span key={index}>{segment.text}</span>
-          )
-        )}
-      </p>
+            <p className="mt-2 border-l-2 border-info/60 pl-3 text-sm leading-6 text-muted">
+              {answer}
+            </p>
+          )}
+        </>
+      )}
     </Panel>
   );
 };

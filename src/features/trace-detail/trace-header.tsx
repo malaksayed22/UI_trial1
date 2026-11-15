@@ -1,4 +1,5 @@
 import { DecisionBadge } from "@/components/ui/decision-badge";
+import { PolicyVerdictTag } from "@/components/ui/policy-verdict-tag";
 import { VersionChip } from "@/components/ui/version-chip";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { describeFailureLabel } from "@/lib/labels";
@@ -42,9 +43,15 @@ export const TraceHeader = ({ trace }: TraceHeaderProps) => {
           {versions.retriever && <VersionChip kind="retriever" value={versions.retriever} />}
         </div>
       </div>
-      <div className="flex flex-col items-start gap-1 md:items-end">
-        <span className="text-xs text-faint">Reliability decision</span>
-        <DecisionBadge decision={summary.decision} size="lg" />
+      <div className="flex flex-col items-start gap-3 md:items-end">
+        <div className="flex flex-col items-start gap-1 md:items-end">
+          <span className="text-xs text-faint">Reliability decision</span>
+          <DecisionBadge decision={summary.decision} size="lg" />
+        </div>
+        <div className="flex flex-col items-start gap-1 md:items-end">
+          <span className="text-xs text-faint">Policy / security verdict</span>
+          <PolicyVerdictTag verdict={summary.policySecurityVerdict} />
+        </div>
       </div>
     </header>
   );

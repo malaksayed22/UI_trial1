@@ -27,7 +27,7 @@ type Draft = {
 const SEARCH_DEBOUNCE_MS = 300;
 
 const decisions: Decision[] = ["PASS", "REVIEW", "BLOCK"];
-const verdicts: PolicySecurityVerdict[] = ["PASS", "BLOCK", "NOT_APPLICABLE"];
+const verdicts: PolicySecurityVerdict[] = ["PASS", "BLOCK", "NOT_APPLICABLE", "UNAVAILABLE"];
 
 const draftFromQuery = (query: TraceListQuery): Draft => ({
   q: query.q ?? "",

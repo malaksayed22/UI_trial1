@@ -10,6 +10,8 @@ import {
   notApplicable,
   RAG_VERSIONS,
   scored,
+  spanBetween,
+  spanOf,
 } from "./shared";
 
 /** Retrieval succeeded, but the answer adds a claim no document supports. */
@@ -21,11 +23,21 @@ const ANSWER =
   "The international travel policy allows business-class airfare reimbursement up to $4,200 for flights over 8 hours, provided pre-approval was obtained [HR-221]. Any excess requires VP sign-off [HR-221], and receipts must be filed within 30 days of return.";
 
 const documents = [
-  { documentId: "HR-221", title: "International Travel Policy §4.2", score: 0.94, rank: 1 },
-  { documentId: "HR-098", title: "Expense Reporting Guidelines", score: 0.71, rank: 2 },
-  { documentId: "FIN-014", title: "Corporate Card Usage Policy", score: 0.58, rank: 3 },
-  { documentId: "HR-221b", title: "International Travel Policy §4.3 (approvals)", score: 0.44, rank: 4 },
+  { documentId: "HR-221", version: "v6", title: "International Travel Policy §4.2", score: 0.94, rank: 1 },
+  { documentId: "HR-098", version: "v3", title: "Expense Reporting Guidelines", score: 0.71, rank: 2 },
+  { documentId: "FIN-014", version: "v5", title: "Corporate Card Usage Policy", score: 0.58, rank: 3 },
+  { documentId: "HR-221b", version: "v2", title: "International Travel Policy §4.3 (approvals)", score: 0.44, rank: 4 },
 ];
+
+const PASSAGE_CAP =
+  "Business-class airfare is reimbursable up to $4,200 per round trip for flights exceeding 8 hours, provided written pre-approval has been obtained from the employee's manager.";
+const PASSAGE_EXCESS =
+  "Amounts above the cap require written sign-off from a Vice President before the flight is booked.";
+
+const CLAIM_CAP =
+  "business-class airfare reimbursement up to $4,200 for flights over 8 hours, provided pre-approval was obtained";
+const CLAIM_EXCESS = "Any excess requires VP sign-off";
+const CLAIM_RECEIPTS = "receipts must be filed within 30 days of return";
 
 export const ragUnsupportedSummary: TraceSummary = {
   traceId: "trace-2f88b1e0",
@@ -111,6 +123,7 @@ export const ragUnsupportedDetail: TraceDetail = {
       query: QUERY,
       retrieverVersion: "retriever-v2.3.1-ada",
       documents,
+      failure: null,
     },
     {
       eventId: "ev-2",
@@ -149,6 +162,29 @@ export const ragUnsupportedDetail: TraceDetail = {
       { from: "n3", to: "n1", relation: "unsupported_completion" },
     ],
   },
+  status: {
+    workflow: {
+      state: "answer_delivered",
+      note: "The model answered from the retrieved documents.",
+    },
+    policy: {
+      stage: "not_applicable",
+      note: "Procurement policies do not apply to RAG traces.",
+    },
+    execution: {
+      status: "not_applicable",
+      note: "No tool was proposed or invoked.",
+    },
+  },
+  actions: [],
+  approvals: [],
+  delivery: {
+    eventId: "ev-3",
+    disposition: "unchanged",
+    rawCandidate: { text: ANSWER, actionRefs: [] },
+    delivered: { text: ANSWER, actionRefs: [] },
+    interventions: [],
+  },
   availableViews: { rag: true, investigation: true },
 };
 
@@ -157,12 +193,7 @@ export const ragUnsupportedDiagnostics: RagDiagnostics = {
   applicationName: ragUnsupportedSummary.applicationName,
   query: QUERY,
   answer: ANSWER,
-  unsupportedClaims: [
-    {
-      claim: "receipts must be filed within 30 days of return",
-      reason: "No matching clause found in the retrieved HR-221 excerpt.",
-    },
-  ],
+  outcome: { kind: "answered" },
   retrieverVersion: RAG_VERSIONS.retriever ?? "n/a",
   evaluatorVersion: "v1.1.0",
   k: 4,
@@ -172,10 +203,52 @@ export const ragUnsupportedDiagnostics: RagDiagnostics = {
     { documentRef: "HR-221 §4.3", retrieved: true, rank: 4 },
     { documentRef: "HR-330 §2.1", retrieved: false, rank: null },
   ],
-  citations: [
-    { claim: "reimbursement up to $4,200", documentId: "HR-221", status: "supported" },
-    { claim: "excess requires VP sign-off", documentId: "HR-221", status: "supported" },
-    { claim: "receipts must be filed within 30 days of return", documentId: null, status: "unsupported" },
+  sources: [
+    {
+      sourceId: "HR-221",
+      version: "v6",
+      title: "International Travel Policy §4.2",
+      passages: [
+        { passageId: "p-4.2-1", locator: "§4.2 ¶1", text: PASSAGE_CAP },
+        { passageId: "p-4.2-2", locator: "§4.2 ¶2", text: PASSAGE_EXCESS },
+      ],
+    },
+  ],
+  claims: [
+    {
+      claimId: "claim-1",
+      text: CLAIM_CAP,
+      answerSpan: spanOf(ANSWER, CLAIM_CAP),
+      status: "supported",
+      citation: {
+        sourceId: "HR-221",
+        documentVersion: "v6",
+        passageId: "p-4.2-1",
+        sourceSpan: spanBetween(PASSAGE_CAP, "up to $4,200", "has been obtained"),
+      },
+      reason: null,
+    },
+    {
+      claimId: "claim-2",
+      text: CLAIM_EXCESS,
+      answerSpan: spanOf(ANSWER, CLAIM_EXCESS),
+      status: "supported",
+      citation: {
+        sourceId: "HR-221",
+        documentVersion: "v6",
+        passageId: "p-4.2-2",
+        sourceSpan: spanBetween(PASSAGE_EXCESS, "require written sign-off", "Vice President"),
+      },
+      reason: null,
+    },
+    {
+      claimId: "claim-3",
+      text: CLAIM_RECEIPTS,
+      answerSpan: spanOf(ANSWER, CLAIM_RECEIPTS),
+      status: "unsupported",
+      citation: null,
+      reason: "No retrieved passage states a receipt-filing deadline.",
+    },
   ],
   metrics: {
     groundedness: scored(0.91),

@@ -127,11 +127,13 @@ export const procurementSuccessDetail: TraceDetail = {
       documents: [
         {
           documentId: "POL-114",
+          version: "v4",
           title: "Purchase approval threshold, Tier 2",
           score: 0.93,
           rank: 1,
         },
       ],
+      failure: null,
     },
     {
       eventId: "ev-2",
@@ -172,6 +174,7 @@ export const procurementSuccessDetail: TraceDetail = {
       sequence: 5,
       type: "tool_call",
       stage: "proposed",
+      actionId: "act-1",
       timestamp: "2026-10-01T07:55:03.140Z",
       latencyMs: null,
       tool: "create_purchase_order",
@@ -182,6 +185,7 @@ export const procurementSuccessDetail: TraceDetail = {
       parentId: "ev-5",
       sequence: 6,
       type: "tool_result",
+      actionId: "act-1",
       timestamp: "2026-10-01T07:55:03.255Z",
       latencyMs: 98,
       tool: "create_purchase_order",
@@ -223,6 +227,104 @@ export const procurementSuccessDetail: TraceDetail = {
       { from: "n4", to: "n5", relation: "sequence" },
       { from: "n5", to: "n6", relation: "sequence" },
     ],
+  },
+  status: {
+    workflow: {
+      state: "approved",
+      note: "Approval was recorded before the tool was proposed.",
+    },
+    policy: {
+      stage: "gate_passed",
+      note: "All three procurement policies passed at the pre-execution gate.",
+      gate: {
+        actionVerdict: "PASS",
+        verdictBasis:
+          "All three evaluated procurement policies passed before dispatch.",
+        evaluatedPolicies: [
+          { policyId: "PROC-APPROVAL-01", policyResult: "pass" },
+          { policyId: "PROC-TOOL-STAGE-01", policyResult: "pass" },
+          { policyId: "PROC-SUPPLIER-01", policyResult: "pass" },
+        ],
+      },
+    },
+    execution: {
+      status: "executed",
+      note: "create_purchase_order ran and returned a confirmed result.",
+    },
+  },
+  actions: [
+    {
+      actionId: "act-1",
+      tool: "create_purchase_order",
+      arguments: { amount: "$18,400", supplier: "SUP-1180" },
+      proposal: { eventId: "ev-5" },
+      authorization: {
+        status: "authorized",
+        detail: "Tier-2 approval APR-2207 was approved before the tool was proposed.",
+        approvalIds: ["apr-2207"],
+        policyFindingIds: ["PROC-APPROVAL-01", "PROC-TOOL-STAGE-01", "PROC-SUPPLIER-01"],
+      },
+      invocation: { status: "invoked", eventId: "ev-6", result: "succeeded" },
+      effect: {
+        status: "known_effect",
+        description: "Purchase order PO-77120 was created.",
+        resource: { type: "purchase_order", id: "PO-77120" },
+        origin: { kind: "created", createdAt: "2026-10-01T07:55:03.255Z" },
+        evidenceEventIds: ["ev-6"],
+      },
+      stageAtBoundaries: {
+        policyStageAtProposal: "APPROVED",
+        checkedPolicyStage: "APPROVED",
+        policyStageAtDispatch: "PO_CREATION",
+        policyStage: "COMPLETED",
+      },
+    },
+  ],
+  approvals: [
+    {
+      approvalId: "apr-2207",
+      requirement: "Tier-2 approval · orders above $15,000",
+      status: "approved",
+      source: { system: "Approval service", recordId: "APR-2207" },
+      requestedAt: "2026-10-01T07:55:02.790Z",
+      decidedAt: "2026-10-01T07:55:03.020Z",
+      decidedBy: "Marcus L. (Finance, Tier-2)",
+      note: "Within the Q4 category budget.",
+      actionIds: ["act-1"],
+    },
+  ],
+  // TRD-22 fixture data. State names mirror the agent_state events; the
+  // attempted state "po_creation_requested" is illustrative until the canonical
+  // fine-grained state list is confirmed.
+  stateTransitions: [
+    { eventId: "ev-3", previousState: "request_captured", newState: "policy_checked", policyStage: "PRE_APPROVAL", disposition: "accepted" },
+    { eventId: "ev-4", previousState: "approval_pending", newState: "approved", policyStage: "APPROVED", disposition: "accepted" },
+    { eventId: "ev-5", previousState: "approved", newState: "po_creation_requested", policyStage: "PO_CREATION", disposition: "accepted" },
+  ],
+  delivery: {
+    eventId: "ev-7",
+    disposition: "unchanged",
+    rawCandidate: {
+      text: "Purchase order PO-77120 was created after Tier-2 approval.",
+      actionRefs: [
+        {
+          actionId: "act-1",
+          claim: "PO-77120 was created",
+          consistency: "consistent",
+        },
+      ],
+    },
+    delivered: {
+      text: "Purchase order PO-77120 was created after Tier-2 approval.",
+      actionRefs: [
+        {
+          actionId: "act-1",
+          claim: "PO-77120 was created",
+          consistency: "consistent",
+        },
+      ],
+    },
+    interventions: [],
   },
   availableViews: { rag: false, investigation: true },
 };

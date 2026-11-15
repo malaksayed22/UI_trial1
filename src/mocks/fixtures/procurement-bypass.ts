@@ -38,11 +38,13 @@ export const procurementBypassDetail: TraceDetail = {
       documents: [
         {
           documentId: "POL-114",
+          version: "v4",
           title: "Purchase approval threshold, Tier 2",
           score: 0.94,
           rank: 1,
         },
       ],
+      failure: null,
     },
     {
       eventId: "ev-2",
@@ -83,6 +85,7 @@ export const procurementBypassDetail: TraceDetail = {
       sequence: 5,
       type: "tool_call",
       stage: "proposed",
+      actionId: "act-1",
       timestamp: "2026-10-01T09:41:03.229Z",
       latencyMs: null,
       tool: "create_purchase_order",
@@ -93,6 +96,7 @@ export const procurementBypassDetail: TraceDetail = {
       parentId: "ev-5",
       sequence: 6,
       type: "tool_result",
+      actionId: "act-1",
       timestamp: "2026-10-01T09:41:03.241Z",
       latencyMs: 12,
       tool: "create_purchase_order",
@@ -222,6 +226,108 @@ export const procurementBypassDetail: TraceDetail = {
       { from: "n6", to: "n7", relation: "sequence" },
       { from: "n7", to: "n6", relation: "unsupported_completion" },
     ],
+  },
+  status: {
+    workflow: {
+      state: "PRE_APPROVAL",
+      note: "Approval had not been received when the tool was proposed.",
+    },
+    policy: {
+      stage: "gate_blocked",
+      note: "PROC-APPROVAL-01 and PROC-TOOL-STAGE-01 failed at the pre-execution gate.",
+      gate: {
+        actionVerdict: "BLOCK",
+        verdictBasis:
+          "Three evaluated policies failed before dispatch: PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01.",
+        evaluatedPolicies: [
+          { policyId: "PROC-APPROVAL-01", policyResult: "fail" },
+          { policyId: "PROC-TOOL-STAGE-01", policyResult: "fail" },
+          { policyId: "PROC-SUPPLIER-01", policyResult: "fail" },
+        ],
+      },
+    },
+    execution: {
+      status: "not_executed",
+      note: "The tool gateway never dispatched create_purchase_order.",
+    },
+  },
+  actions: [
+    {
+      actionId: "act-1",
+      tool: "create_purchase_order",
+      arguments: { amount: "$48,200", supplier: "SUP-2291" },
+      proposal: { eventId: "ev-5" },
+      authorization: {
+        status: "not_authorized",
+        detail:
+          "Tier-2 approval APR-3301 is still pending and the workflow stage is not approved.",
+        approvalIds: ["apr-3301"],
+        policyFindingIds: ["PROC-APPROVAL-01", "PROC-TOOL-STAGE-01"],
+      },
+      invocation: {
+        status: "suppressed",
+        eventId: "ev-6",
+        reason: "The policy engine returned BLOCK before dispatch.",
+      },
+      effect: {
+        status: "no_effect",
+        basis:
+          "The call was never dispatched, so the purchase-order service was not contacted.",
+        evidenceEventIds: ["ev-6"],
+      },
+      stageAtBoundaries: {
+        policyStageAtProposal: "PRE_APPROVAL",
+        checkedPolicyStage: "PRE_APPROVAL",
+        policyStageAtDispatch: null,
+        policyStage: "PRE_APPROVAL",
+      },
+    },
+  ],
+  approvals: [
+    {
+      approvalId: "apr-3301",
+      requirement: "Tier-2 approval · orders above $25,000",
+      status: "pending",
+      source: { system: "Approval service", recordId: "APR-3301" },
+      requestedAt: "2026-10-01T09:41:03.050Z",
+      decidedAt: null,
+      decidedBy: null,
+      note: null,
+      actionIds: ["act-1"],
+    },
+  ],
+  // TRD-22 fixture data. State names mirror the agent_state events; the
+  // attempted state "po_creation_requested" is illustrative until the canonical
+  // fine-grained state list is confirmed.
+  stateTransitions: [
+    { eventId: "ev-3", previousState: "request_captured", newState: "policy_checked", policyStage: "PRE_APPROVAL", disposition: "accepted" },
+    { eventId: "ev-4", previousState: "policy_checked", newState: "PRE_APPROVAL", policyStage: "PRE_APPROVAL", disposition: "accepted" },
+    { eventId: "ev-5", previousState: "PRE_APPROVAL", newState: "po_creation_requested", policyStage: "PRE_APPROVAL", disposition: "attempted" },
+  ],
+  delivery: {
+    eventId: "ev-7",
+    disposition: "unchanged",
+    rawCandidate: {
+      text: "Your purchase order has been submitted.",
+      actionRefs: [
+        {
+          actionId: "act-1",
+          claim: "A purchase order was submitted",
+          consistency: "contradicted",
+        },
+      ],
+    },
+    delivered: {
+      text: "Your purchase order has been submitted.",
+      actionRefs: [
+        {
+          actionId: "act-1",
+          claim: "A purchase order was submitted",
+          consistency: "contradicted",
+        },
+      ],
+    },
+    interventions: [],
   },
   availableViews: { rag: false, investigation: true },
 };

@@ -1,4 +1,4 @@
-import type { Measurement, VersionSet, Viewer } from "@/types";
+import type { Measurement, TextSpan, VersionSet, Viewer } from "@/types";
 
 /**
  * Fixture data used until every backend module is live. Values are
@@ -49,3 +49,16 @@ export const evaluatorFailed = (reason: string): Measurement => ({
 
 /** Builds an ISO timestamp for a time on the fixture day. */
 export const at = (time: string, date = "2026-10-01") => `${date}T${time}Z`;
+
+/** Locates `phrase` in `text`. Throws so a typo in a fixture fails loudly. */
+export const spanOf = (text: string, phrase: string): TextSpan => {
+  const start = text.indexOf(phrase);
+  if (start === -1) throw new Error(`Fixture phrase not found: ${phrase}`);
+  return { start, end: start + phrase.length };
+};
+
+/** Span from the start of `from` to the end of `to`, both found in `text`. */
+export const spanBetween = (text: string, from: string, to: string): TextSpan => {
+  const start = spanOf(text, from).start;
+  return { start, end: spanOf(text, to).end };
+};

@@ -11,6 +11,7 @@ import {
   notApplicable,
   RAG_VERSIONS,
   scored,
+  spanOf,
 } from "./shared";
 
 /**
@@ -24,11 +25,16 @@ const ANSWER =
   "The domestic meal allowance is $65 per day, claimed through the corporate card program [FIN-014].";
 
 const documents = [
-  { documentId: "HR-310", title: "Remote Work Equipment Policy", score: 0.52, rank: 1 },
-  { documentId: "FIN-014", title: "Corporate Card Usage Policy", score: 0.49, rank: 2 },
-  { documentId: "HR-098", title: "Expense Reporting Guidelines", score: 0.47, rank: 3 },
-  { documentId: "IT-077", title: "Device Security Baseline", score: 0.41, rank: 4 },
+  { documentId: "HR-310", version: "v2", title: "Remote Work Equipment Policy", score: 0.52, rank: 1 },
+  { documentId: "FIN-014", version: "v5", title: "Corporate Card Usage Policy", score: 0.49, rank: 2 },
+  { documentId: "HR-098", version: "v3", title: "Expense Reporting Guidelines", score: 0.47, rank: 3 },
+  { documentId: "IT-077", version: "v1", title: "Device Security Baseline", score: 0.41, rank: 4 },
 ];
+
+const PASSAGE_CARD =
+  "Corporate cards may be used for approved business travel expenses. Cardholders must submit itemised receipts through the expense portal within 14 days of the transaction.";
+
+const CLAIM_ALLOWANCE = "The domestic meal allowance is $65 per day";
 
 export const ragRetrievalFailureSummary: TraceSummary = {
   traceId: "trace-6c41d9f2",
@@ -113,6 +119,7 @@ export const ragRetrievalFailureDetail: TraceDetail = {
       query: QUERY,
       retrieverVersion: "retriever-v2.3.1-ada",
       documents,
+      failure: null,
     },
     {
       eventId: "ev-2",
@@ -152,6 +159,29 @@ export const ragRetrievalFailureDetail: TraceDetail = {
       { from: "n3", to: "n1", relation: "unsupported_completion" },
     ],
   },
+  status: {
+    workflow: {
+      state: "answer_delivered",
+      note: "The model answered from low-relevance documents.",
+    },
+    policy: {
+      stage: "not_applicable",
+      note: "Procurement policies do not apply to RAG traces.",
+    },
+    execution: {
+      status: "not_applicable",
+      note: "No tool was proposed or invoked.",
+    },
+  },
+  actions: [],
+  approvals: [],
+  delivery: {
+    eventId: "ev-3",
+    disposition: "unchanged",
+    rawCandidate: { text: ANSWER, actionRefs: [] },
+    delivered: { text: ANSWER, actionRefs: [] },
+    interventions: [],
+  },
   availableViews: { rag: true, investigation: true },
 };
 
@@ -160,12 +190,7 @@ export const ragRetrievalFailureDiagnostics: RagDiagnostics = {
   applicationName: ragRetrievalFailureSummary.applicationName,
   query: QUERY,
   answer: ANSWER,
-  unsupportedClaims: [
-    {
-      claim: "The domestic meal allowance is $65 per day",
-      reason: "No retrieved document states a domestic meal allowance.",
-    },
-  ],
+  outcome: { kind: "answered" },
   retrieverVersion: RAG_VERSIONS.retriever ?? "n/a",
   evaluatorVersion: "v1.1.0",
   k: 4,
@@ -174,11 +199,28 @@ export const ragRetrievalFailureDiagnostics: RagDiagnostics = {
     { documentRef: "HR-221 §5.1", retrieved: false, rank: null },
     { documentRef: "HR-221 §5.2", retrieved: false, rank: null },
   ],
-  citations: [
+  sources: [
     {
-      claim: "domestic meal allowance is $65 per day",
-      documentId: "FIN-014",
+      sourceId: "FIN-014",
+      version: "v5",
+      title: "Corporate Card Usage Policy",
+      passages: [{ passageId: "p-3-1", locator: "§3 ¶1", text: PASSAGE_CARD }],
+    },
+  ],
+  claims: [
+    {
+      claimId: "claim-1",
+      text: CLAIM_ALLOWANCE,
+      answerSpan: spanOf(ANSWER, CLAIM_ALLOWANCE),
       status: "unsupported",
+      // The model cited FIN-014, but nothing in the cited passage supports the claim.
+      citation: {
+        sourceId: "FIN-014",
+        documentVersion: "v5",
+        passageId: "p-3-1",
+        sourceSpan: null,
+      },
+      reason: "The cited passage covers card usage and states no meal allowance.",
     },
   ],
   metrics: {

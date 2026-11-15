@@ -10,7 +10,7 @@ import { ApplicationPulse } from "@/features/overview/application-pulse";
 import { FailureClasses } from "@/features/overview/failure-classes";
 import { RecentGates } from "@/features/overview/recent-gates";
 import { ReliabilityTrend } from "@/features/overview/reliability-trend";
-import { api, settle } from "@/lib/api";
+import { api, dataSource, settle } from "@/lib/api";
 import { formatInteger, formatPercent } from "@/lib/format";
 import { tracesHref } from "@/lib/routes";
 
@@ -31,6 +31,17 @@ const OverviewPage = async () => {
         title="Reliability Overview"
         description="Where is reliability deteriorating across both reference applications?"
       />
+
+      {dataSource === "fixture" && (
+        <p
+          role="note"
+          className="mb-4 rounded-lg border border-line-strong bg-raised/50 px-3 py-2 text-xs leading-5 text-muted"
+        >
+          Fixture-only totals. The counts on this page are hand-written illustrative values for a{" "}
+          {overview.windowDays}-day window. They are not computed from the traces listed in the
+          Trace Explorer, so they do not add up to that list.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard

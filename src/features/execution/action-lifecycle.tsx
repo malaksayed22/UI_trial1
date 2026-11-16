@@ -79,6 +79,12 @@ const IdChip = ({ href, children }: { href?: string; children: ReactNode }) => {
  * record and version the action used. When that record is cancelled, the
  * cancellation is reported through this reference only. The matching rule
  * (by approval id) is a placeholder, not a final mapping.
+ *
+ * PENDING CONFIRMATION FROM MOHAB: how the approval ID and the record version
+ * bind to each other and to the action. Today the lookup below matches on the
+ * approval ID alone and ignores `recordVersion`, so a cancellation of a
+ * different version of the same approval would also be shown. Do not rely on
+ * this link as evidence until that binding is confirmed.
  */
 const ApprovalRecordRefs = ({
   authorization,

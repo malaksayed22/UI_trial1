@@ -2,6 +2,18 @@ import { Panel, PanelHeader } from "@/components/ui/panel";
 import { Tag } from "@/components/ui/tag";
 import type { ActionRecord, WorkflowPolicyStage } from "@/types";
 
+/**
+ * "Not dispatched" is a claim, so it needs evidence: the invocation must be
+ * recorded as suppressed and point at the event that recorded it. A missing
+ * dispatch stage alone proves nothing, because the record may simply be
+ * incomplete.
+ */
+const hasConfirmedSuppression = (action: ActionRecord) =>
+  action.invocation.status === "suppressed" && action.invocation.eventId !== null;
+
+const dispatchAbsentText = (action: ActionRecord) =>
+  hasConfirmedSuppression(action) ? "Not dispatched" : "Dispatch not recorded";
+
 type StageRowProps = { label: string; stage: WorkflowPolicyStage | null; absent: string };
 
 const StageRow = ({ label, stage, absent }: StageRowProps) => (
@@ -56,7 +68,7 @@ export const StageBoundaries = ({ actions }: StageBoundariesProps) => {
                   <StageRow
                     label="At dispatch"
                     stage={stages.policyStageAtDispatch}
-                    absent="Not dispatched"
+                    absent={dispatchAbsentText(action)}
                   />
                   <StageRow label="Current stage" stage={stages.policyStage} absent="" />
                 </dl>

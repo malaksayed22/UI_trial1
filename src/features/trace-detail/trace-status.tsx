@@ -60,7 +60,9 @@ const Signal = ({ label, source, note, children }: SignalProps) => (
 
 /**
  * The policy engine's own report, shown as given: the action verdict, the
- * basis for it, and the result of each policy it evaluated.
+ * basis code for it, and the result of each policy it evaluated. The
+ * explanation is a separate sentence for people and is labelled as such, so it
+ * is not mistaken for the contract code.
  */
 const PolicyGateDetailView = ({ gate }: { gate: PolicyGateDetail }) => (
   <dl className="mt-3 space-y-2 border-t border-line pt-3 text-xs">
@@ -69,8 +71,12 @@ const PolicyGateDetailView = ({ gate }: { gate: PolicyGateDetail }) => (
       <dd className="mt-0.5 font-mono text-ink">{gate.actionVerdict}</dd>
     </div>
     <div>
-      <dt className="text-faint">Verdict basis</dt>
-      <dd className="mt-0.5 leading-5 text-muted">{gate.verdictBasis}</dd>
+      <dt className="text-faint">Verdict basis code</dt>
+      <dd className="mt-0.5 break-all font-mono text-ink">{gate.verdictBasis}</dd>
+    </div>
+    <div>
+      <dt className="text-faint">Verdict explanation</dt>
+      <dd className="mt-0.5 leading-5 text-muted">{gate.verdictExplanation}</dd>
     </div>
     <div>
       <dt className="text-faint">Evaluated policies</dt>

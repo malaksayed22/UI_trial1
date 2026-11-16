@@ -244,13 +244,15 @@ export const procurementNotDispatchedDetail: TraceDetail = {
       stage: "gate_passed",
       note: "All three procurement policies passed at the pre-execution gate.",
       gate: {
-        actionVerdict: "PASS",
-        verdictBasis:
+        actionVerdict: "ALLOW",
+        // PLACEHOLDER: the PR #28 verdict_basis codes were not supplied.
+        verdictBasis: "PLACEHOLDER_VERDICT_BASIS_CODE_NOT_SUPPLIED",
+        verdictExplanation:
           "All three evaluated procurement policies passed before dispatch. The gateway then refused to dispatch; that was not a policy decision.",
         evaluatedPolicies: [
-          { policyId: "PROC-APPROVAL-01", policyResult: "pass" },
-          { policyId: "PROC-TOOL-STAGE-01", policyResult: "pass" },
-          { policyId: "PROC-SUPPLIER-01", policyResult: "pass" },
+          { policyId: "PROC-APPROVAL-01", policyResult: "PASS" },
+          { policyId: "PROC-TOOL-STAGE-01", policyResult: "PASS" },
+          { policyId: "PROC-SUPPLIER-01", policyResult: "PASS" },
         ],
       },
     },

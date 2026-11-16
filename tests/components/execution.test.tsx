@@ -355,10 +355,51 @@ describe("policy stage at each boundary (TRD-23)", () => {
     expect(values).toEqual(["APPROVED", "APPROVED", "PO_CREATION", "COMPLETED"]);
   });
 
-  it("says the call was not dispatched instead of inventing a dispatch stage", () => {
+  it("says the call was not dispatched when suppression is confirmed by an evidence event", () => {
+    const action = trace(NOT_DISPATCHED).actions[0]!;
+    expect(action.invocation).toMatchObject({ status: "suppressed", eventId: "ev-6" });
     render(<StageBoundaries actions={trace(NOT_DISPATCHED).actions} />);
     expect(screen.getByText("Not dispatched")).toBeInTheDocument();
+    expect(screen.queryByText("Dispatch not recorded")).not.toBeInTheDocument();
     expect(screen.getAllByText("APPROVED")).toHaveLength(3);
+  });
+
+  it("also says not dispatched for the policy-blocked trace, whose suppression cites ev-6", () => {
+    const action = trace(BYPASS).actions[0]!;
+    expect(action.invocation).toMatchObject({ status: "suppressed", eventId: "ev-6" });
+    render(<StageBoundaries actions={trace(BYPASS).actions} />);
+    expect(screen.getByText("Not dispatched")).toBeInTheDocument();
+  });
+
+  // No fixture has a null dispatch stage without suppression evidence, so the
+  // cases below use derived records.
+  const withoutDispatchStage = (invocation: ActionRecord["invocation"]): ActionRecord => ({
+    ...trace(NOT_DISPATCHED).actions[0]!,
+    invocation,
+  });
+
+  it("says dispatch was not recorded when the dispatch stage is null and suppression has no evidence event", () => {
+    const action = withoutDispatchStage({
+      status: "suppressed",
+      eventId: null,
+      reason: "No event recorded.",
+    });
+    render(<StageBoundaries actions={[action]} />);
+    expect(screen.getByText("Dispatch not recorded")).toBeInTheDocument();
+    expect(screen.queryByText("Not dispatched")).not.toBeInTheDocument();
+  });
+
+  it("says dispatch was not recorded when the call is recorded as invoked but the stage is null", () => {
+    const action = withoutDispatchStage({ status: "invoked", eventId: "ev-6", result: "succeeded" });
+    render(<StageBoundaries actions={[action]} />);
+    expect(screen.getByText("Dispatch not recorded")).toBeInTheDocument();
+    expect(screen.queryByText("Not dispatched")).not.toBeInTheDocument();
+  });
+
+  it("shows the dispatch stage itself, not either message, when one is recorded", () => {
+    render(<StageBoundaries actions={trace(SUCCESS).actions} />);
+    expect(screen.queryByText("Not dispatched")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dispatch not recorded")).not.toBeInTheDocument();
   });
 
   it("uses no pass, review or block styling and states a stage is not a result", () => {
@@ -375,20 +416,42 @@ describe("policy stage at each boundary (TRD-23)", () => {
 });
 
 describe("policy gate tile", () => {
-  it("shows the action verdict, verdict basis and each policy result", () => {
+  it("shows the action verdict, verdict basis code, explanation and each policy result", () => {
     const detail = trace(NOT_DISPATCHED);
     render(<TraceStatusPanel status={detail.status} decision={detail.summary.decision} />);
     expect(screen.getByText("Action verdict")).toBeInTheDocument();
-    expect(screen.getByText("Verdict basis")).toBeInTheDocument();
+    expect(screen.getByText("Verdict basis code")).toBeInTheDocument();
+    expect(screen.getByText("Verdict explanation")).toBeInTheDocument();
+    expect(screen.getByText("ALLOW", { selector: "dd.font-mono" })).toBeInTheDocument();
     expect(screen.getByText(/that was not a policy decision/)).toBeInTheDocument();
-    expect(screen.getAllByText("pass")).toHaveLength(3);
+    expect(screen.getAllByText("PASS", { selector: "li span" })).toHaveLength(3);
     expect(screen.getByText("PROC-SUPPLIER-01")).toBeInTheDocument();
   });
 
-  it("shows a failed policy result next to the ones that passed", () => {
+  it("keeps the basis code and the explanation in separate, labelled fields", () => {
+    const detail = trace(NOT_DISPATCHED);
+    render(<TraceStatusPanel status={detail.status} decision={detail.summary.decision} />);
+    const code = screen.getByText(detail.status.policy.gate!.verdictBasis);
+    const explanation = screen.getByText(detail.status.policy.gate!.verdictExplanation);
+    expect(code).not.toBe(explanation);
+    expect(code.tagName).toBe("DD");
+    expect(explanation.tagName).toBe("DD");
+    expect(code.previousElementSibling?.textContent).toBe("Verdict basis code");
+    expect(explanation.previousElementSibling?.textContent).toBe("Verdict explanation");
+    expect(code.textContent).not.toContain("gateway");
+  });
+
+  it("marks the verdict basis code as a placeholder until the PR #28 codes exist", () => {
     const detail = trace(BYPASS);
     render(<TraceStatusPanel status={detail.status} decision={detail.summary.decision} />);
-    expect(screen.getAllByText("fail")).toHaveLength(3);
+    expect(screen.getByText(/^PLACEHOLDER_/)).toBeInTheDocument();
+  });
+
+  it("shows a failed policy result in uppercase and an ALLOW or BLOCK verdict", () => {
+    const detail = trace(BYPASS);
+    render(<TraceStatusPanel status={detail.status} decision={detail.summary.decision} />);
+    expect(screen.getAllByText("FAIL", { selector: "li span" })).toHaveLength(3);
+    expect(screen.queryByText("fail")).not.toBeInTheDocument();
     expect(screen.getByText("BLOCK", { selector: "dd.font-mono" })).toBeInTheDocument();
   });
 

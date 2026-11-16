@@ -512,12 +512,102 @@ describe("stage and gate fixtures (TRD-22, TRD-23, policy gate)", () => {
     expect(accepted.every(item => item.disposition === "accepted")).toBe(true);
   });
 
+  const gates = details.flatMap(detail =>
+    detail.status.policy.gate ? [{ detail, gate: detail.status.policy.gate }] : []
+  );
+
+  it("carries gate data on the three approval-flow traces", () => {
+    expect(gates.map(item => item.detail.summary.traceId).sort()).toEqual([
+      "trace-8f21c9a4",
+      "trace-9a03e771",
+      "trace-a8c63e15",
+    ]);
+  });
+
+  it("uses only ALLOW or BLOCK as the action verdict", () => {
+    gates.forEach(({ gate }) => expect(["ALLOW", "BLOCK"]).toContain(gate.actionVerdict));
+  });
+
+  it("uses only PASS, FAIL, NOT_APPLICABLE or ERROR as a policy result, in uppercase", () => {
+    gates.forEach(({ gate }) => {
+      expect(gate.evaluatedPolicies.length).toBeGreaterThan(0);
+      gate.evaluatedPolicies.forEach(policy =>
+        expect(["PASS", "FAIL", "NOT_APPLICABLE", "ERROR"]).toContain(policy.policyResult)
+      );
+    });
+  });
+
+  it("keeps the verdict basis a code and the explanation a separate sentence", () => {
+    gates.forEach(({ gate }) => {
+      // PLACEHOLDER until the PR #28 verdict_basis codes are supplied.
+      expect(gate.verdictBasis).toMatch(/^PLACEHOLDER_[A-Z0-9_]+$/);
+      expect(gate.verdictExplanation).toMatch(/\s/);
+      expect(gate.verdictExplanation).not.toBe(gate.verdictBasis);
+    });
+  });
+
+  it("ties the action verdict to the policy gate stage", () => {
+    gates.forEach(({ detail, gate }) => {
+      const expected = detail.status.policy.stage === "gate_blocked" ? "BLOCK" : "ALLOW";
+      expect(gate.actionVerdict).toBe(expected);
+    });
+  });
+
   it("keeps each evaluated policy result equal to the matching policy finding", () => {
-    details.forEach(detail => {
-      detail.status.policy.gate?.evaluatedPolicies.forEach(policy => {
+    const asResult = { pass: "PASS", fail: "FAIL" } as const;
+    gates.forEach(({ detail, gate }) => {
+      expect(gate.evaluatedPolicies.map(policy => policy.policyId).sort()).toEqual(
+        detail.policyFindings.map(finding => finding.policyId).sort()
+      );
+      gate.evaluatedPolicies.forEach(policy => {
         const finding = detail.policyFindings.find(item => item.policyId === policy.policyId);
-        expect(finding?.outcome).toBe(policy.policyResult);
+        expect(finding && asResult[finding.outcome]).toBe(policy.policyResult);
       });
     });
+  });
+});
+
+describe("policy status note, findings and conformance evaluator agree", () => {
+  const withFindings = Object.values(traceDetails).filter(
+    detail => detail.policyFindings.length > 0
+  );
+
+  it("names every failed policy in the status note and no passed one", () => {
+    withFindings.forEach(({ policyFindings, status, summary }) => {
+      policyFindings.forEach(finding => {
+        const named = status.policy.note.includes(finding.policyId);
+        const failed = finding.outcome === "fail";
+        // A passed gate note may say "all" or "both" instead of naming policies.
+        if (failed) expect(named, `${summary.traceId} ${finding.policyId}`).toBe(true);
+        if (!failed) expect(named, `${summary.traceId} ${finding.policyId}`).toBe(false);
+      });
+    });
+  });
+
+  it("reports the same pass count as the conformance evaluator", () => {
+    withFindings.forEach(({ policyFindings, evaluators, summary }) => {
+      const conformance = evaluators.find(item => item.family === "policy");
+      const counts = conformance?.finding?.match(/^(\d+) of (\d+) procurement policies passed\.$/);
+      expect(counts, summary.traceId).toBeTruthy();
+      const passed = policyFindings.filter(finding => finding.outcome === "pass").length;
+      expect(Number(counts?.[1]), summary.traceId).toBe(passed);
+      expect(Number(counts?.[2]), summary.traceId).toBe(policyFindings.length);
+    });
+  });
+
+  it("makes the policy-blocked trace fail three policies in every place that counts them", () => {
+    const bypass = traceDetails["trace-8f21c9a4"]!;
+    const failed = bypass.policyFindings.filter(finding => finding.outcome === "fail");
+    expect(failed.map(finding => finding.policyId)).toEqual([
+      "PROC-APPROVAL-01",
+      "PROC-TOOL-STAGE-01",
+      "PROC-SUPPLIER-01",
+    ]);
+    expect(bypass.status.policy.gate?.evaluatedPolicies.map(item => item.policyResult)).toEqual([
+      "FAIL",
+      "FAIL",
+      "FAIL",
+    ]);
+    failed.forEach(finding => expect(bypass.status.policy.note).toContain(finding.policyId));
   });
 });

@@ -33,6 +33,9 @@ export type ApprovalRecord = {
  * to the approval record, and the version of it, that it used. A cancellation
  * is linked to the action only through this record reference. The field names
  * and the matching rule are a placeholder, not a final mapping.
+ *
+ * PENDING CONFIRMATION FROM MOHAB: the binding between the approval ID and the
+ * record version, and between that pair and the action.
  */
 export type ApprovalRecordRef = {
   approvalId: string;
@@ -140,15 +143,35 @@ export type PolicyStage =
   | "gate_passed"
   | "gate_blocked";
 
+/** action_verdict (PR #28). Exactly these two values. */
+export type ActionVerdict = "ALLOW" | "BLOCK";
+
+/** evaluated_policies[].policy_result (PR #28). Exactly these four values. */
+export type PolicyResult = "PASS" | "FAIL" | "NOT_APPLICABLE" | "ERROR";
+
+/**
+ * verdict_basis is a contract CODE, not prose.
+ *
+ * PLACEHOLDER: the code list from PR #28 was not supplied, so the real codes
+ * are NOT FOUND. Until they are, the type only accepts a string that starts
+ * with "PLACEHOLDER_", so no fixture can pass an invented value off as a real
+ * code. Replace this with the union of the PR #28 codes once they are known.
+ */
+export type VerdictBasisCode = `PLACEHOLDER_${string}`;
+
 /**
  * What the policy engine reported for the gated action: action_verdict,
- * verdict_basis and each evaluated_policies[].policy_result. The value sets
- * are not yet specified, so they stay plain strings and are shown as given.
+ * verdict_basis and each evaluated_policies[].policy_result.
  */
 export type PolicyGateDetail = {
-  actionVerdict: string;
-  verdictBasis: string;
-  evaluatedPolicies: { policyId: string; policyResult: string }[];
+  actionVerdict: ActionVerdict;
+  verdictBasis: VerdictBasisCode;
+  /**
+   * Explanatory sentence for people. Not part of the contract fields above;
+   * kept apart so the code is never mistaken for prose or the reverse.
+   */
+  verdictExplanation: string;
+  evaluatedPolicies: { policyId: string; policyResult: PolicyResult }[];
 };
 
 /**

@@ -232,17 +232,25 @@ export const procurementBypassDetail: TraceDetail = {
       state: "PRE_APPROVAL",
       note: "Approval had not been received when the tool was proposed.",
     },
+    // PROC-SUPPLIER-01 is recorded as FAIL in policyFindings (evidence ev-5),
+    // in the conformance evaluator ("0 of 3 passed") and in the gate detail.
+    // The fixture holds no supplier master record (no approved flag or tier for
+    // SUP-2291), so that recorded result is the only evidence; the note follows
+    // it. The block event and the action's authorization cite only the two
+    // critical findings; that is left as recorded.
     policy: {
       stage: "gate_blocked",
-      note: "PROC-APPROVAL-01 and PROC-TOOL-STAGE-01 failed at the pre-execution gate.",
+      note: "PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01 failed at the pre-execution gate.",
       gate: {
         actionVerdict: "BLOCK",
-        verdictBasis:
+        // PLACEHOLDER: the PR #28 verdict_basis codes were not supplied.
+        verdictBasis: "PLACEHOLDER_VERDICT_BASIS_CODE_NOT_SUPPLIED",
+        verdictExplanation:
           "Three evaluated policies failed before dispatch: PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01.",
         evaluatedPolicies: [
-          { policyId: "PROC-APPROVAL-01", policyResult: "fail" },
-          { policyId: "PROC-TOOL-STAGE-01", policyResult: "fail" },
-          { policyId: "PROC-SUPPLIER-01", policyResult: "fail" },
+          { policyId: "PROC-APPROVAL-01", policyResult: "FAIL" },
+          { policyId: "PROC-TOOL-STAGE-01", policyResult: "FAIL" },
+          { policyId: "PROC-SUPPLIER-01", policyResult: "FAIL" },
         ],
       },
     },

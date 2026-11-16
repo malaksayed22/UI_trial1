@@ -243,8 +243,7 @@ export const procurementBypassDetail: TraceDetail = {
       note: "PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01 failed at the pre-execution gate.",
       gate: {
         actionVerdict: "BLOCK",
-        // PLACEHOLDER: the PR #28 verdict_basis codes were not supplied.
-        verdictBasis: "PLACEHOLDER_VERDICT_BASIS_CODE_NOT_SUPPLIED",
+        verdictBasis: "MANDATORY_POLICY_FAILED",
         verdictExplanation:
           "Three evaluated policies failed before dispatch: PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01.",
         evaluatedPolicies: [

@@ -539,10 +539,31 @@ describe("stage and gate fixtures (TRD-22, TRD-23, policy gate)", () => {
 
   it("keeps the verdict basis a code and the explanation a separate sentence", () => {
     gates.forEach(({ gate }) => {
-      // PLACEHOLDER until the PR #28 verdict_basis codes are supplied.
-      expect(gate.verdictBasis).toMatch(/^PLACEHOLDER_[A-Z0-9_]+$/);
+      expect([
+        "ALL_APPLICABLE_PASSED",
+        "MANDATORY_POLICY_FAILED",
+        "FAIL_CLOSED_ON_POLICY_ERROR",
+      ]).toContain(gate.verdictBasis);
       expect(gate.verdictExplanation).toMatch(/\s/);
       expect(gate.verdictExplanation).not.toBe(gate.verdictBasis);
+    });
+  });
+
+  it("uses the basis code that matches the policy results", () => {
+    gates.forEach(({ detail, gate }) => {
+      const results = gate.evaluatedPolicies.map(policy => policy.policyResult);
+      // Any ERROR fails closed; otherwise any FAIL is a failed mandatory policy.
+      // A trace with both ERROR and FAIL is not covered by the rule given, and
+      // no fixture has one.
+      expect(results.includes("ERROR") && results.includes("FAIL"), detail.summary.traceId).toBe(
+        false
+      );
+      const expected = results.includes("ERROR")
+        ? "FAIL_CLOSED_ON_POLICY_ERROR"
+        : results.includes("FAIL")
+          ? "MANDATORY_POLICY_FAILED"
+          : "ALL_APPLICABLE_PASSED";
+      expect(gate.verdictBasis, detail.summary.traceId).toBe(expected);
     });
   });
 

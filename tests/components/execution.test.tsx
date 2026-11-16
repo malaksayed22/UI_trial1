@@ -441,10 +441,16 @@ describe("policy gate tile", () => {
     expect(code.textContent).not.toContain("gateway");
   });
 
-  it("marks the verdict basis code as a placeholder until the PR #28 codes exist", () => {
-    const detail = trace(BYPASS);
-    render(<TraceStatusPanel status={detail.status} decision={detail.summary.decision} />);
-    expect(screen.getByText(/^PLACEHOLDER_/)).toBeInTheDocument();
+  it("shows the contract verdict basis code for a failed and a passed gate", () => {
+    const failed = trace(BYPASS);
+    const { unmount } = render(
+      <TraceStatusPanel status={failed.status} decision={failed.summary.decision} />
+    );
+    expect(screen.getByText("MANDATORY_POLICY_FAILED")).toBeInTheDocument();
+    unmount();
+    const passed = trace(SUCCESS);
+    render(<TraceStatusPanel status={passed.status} decision={passed.summary.decision} />);
+    expect(screen.getByText("ALL_APPLICABLE_PASSED")).toBeInTheDocument();
   });
 
   it("shows a failed policy result in uppercase and an ALLOW or BLOCK verdict", () => {

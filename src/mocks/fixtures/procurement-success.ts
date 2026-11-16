@@ -238,8 +238,7 @@ export const procurementSuccessDetail: TraceDetail = {
       note: "All three procurement policies passed at the pre-execution gate.",
       gate: {
         actionVerdict: "ALLOW",
-        // PLACEHOLDER: the PR #28 verdict_basis codes were not supplied.
-        verdictBasis: "PLACEHOLDER_VERDICT_BASIS_CODE_NOT_SUPPLIED",
+        verdictBasis: "ALL_APPLICABLE_PASSED",
         verdictExplanation:
           "All three evaluated procurement policies passed before dispatch.",
         evaluatedPolicies: [

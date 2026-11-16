@@ -150,14 +150,17 @@ export type ActionVerdict = "ALLOW" | "BLOCK";
 export type PolicyResult = "PASS" | "FAIL" | "NOT_APPLICABLE" | "ERROR";
 
 /**
- * verdict_basis is a contract CODE, not prose.
- *
- * PLACEHOLDER: the code list from PR #28 was not supplied, so the real codes
- * are NOT FOUND. Until they are, the type only accepts a string that starts
- * with "PLACEHOLDER_", so no fixture can pass an invented value off as a real
- * code. Replace this with the union of the PR #28 codes once they are known.
+ * verdict_basis is a contract CODE, not prose (governance-contract.md §4.5,
+ * row 2). Exactly these three values:
+ * - ALL_APPLICABLE_PASSED: the applicable policies passed.
+ * - MANDATORY_POLICY_FAILED: a mandatory policy failed.
+ * - FAIL_CLOSED_ON_POLICY_ERROR: the policy check failed closed on an
+ *   evaluation error.
  */
-export type VerdictBasisCode = `PLACEHOLDER_${string}`;
+export type VerdictBasisCode =
+  | "ALL_APPLICABLE_PASSED"
+  | "MANDATORY_POLICY_FAILED"
+  | "FAIL_CLOSED_ON_POLICY_ERROR";
 
 /**
  * What the policy engine reported for the gated action: action_verdict,

@@ -102,8 +102,8 @@ export const procurementBypassDetail: TraceDetail = {
       tool: "create_purchase_order",
       outcome: "blocked",
       detail:
-        "Policy engine returned BLOCK: a Tier-2 approval is required before a purchase order can be created.",
-      policyFindingIds: ["PROC-APPROVAL-01", "PROC-TOOL-STAGE-01"],
+        "Policy engine returned BLOCK: a Tier-2 approval is required before a purchase order can be created, and supplier SUP-2291 is not an approved supplier.",
+      policyFindingIds: ["PROC-APPROVAL-01", "PROC-TOOL-STAGE-01", "PROC-SUPPLIER-01"],
     },
     {
       eventId: "ev-7",
@@ -198,11 +198,43 @@ export const procurementBypassDetail: TraceDetail = {
     {
       policyId: "PROC-SUPPLIER-01",
       policyVersion: POLICY_VERSION,
+      // Rule name is illustrative: only the meaning below is confirmed (Nour).
+      rule: "supplier_must_be_approved",
+      description:
+        "The proposed purchase order's supplier must match an authoritative supplier record with status APPROVED.",
+      outcome: "fail",
+      criticality: "high",
+      evidenceEventIds: ["ev-5"],
+      // Cites the NOT_APPROVED record in `supplierRecords` below.
+      supplierRecordRef: { supplierId: "SUP-2291", recordVersion: "v1" },
+    },
+    // A separate finding for its OWN rule. It is not PROC-SUPPLIER-01 and it is
+    // not one of the gate's three evaluated policies, so the gate detail, the
+    // status note, ev-6, act-1 and the "0 of 3" conformance count leave it out.
+    // The policy ID for this rule is NOT FOUND in the repo; the ID below is a
+    // placeholder, not a real contract ID. Text and outcome are as recorded
+    // before the split.
+    {
+      policyId: "PLACEHOLDER_POLICY_ID_SUPPLIER_TIER",
+      policyVersion: POLICY_VERSION,
       rule: "supplier_tier_check",
       description:
         "SUP-2291 requires secondary review for orders above $25,000.",
       outcome: "fail",
       criticality: "high",
+      evidenceEventIds: ["ev-5"],
+    },
+  ],
+  // FIXTURE DATA. The authoritative supplier record PROC-SUPPLIER-01 relies on.
+  // The status NOT_APPROVED is what makes that policy FAIL. The version "v1" is
+  // illustrative. No other supplier details are recorded because none are
+  // known. ev-5 is the proposal that names SUP-2291; the fixture has no separate
+  // supplier-lookup event.
+  supplierRecords: [
+    {
+      supplierId: "SUP-2291",
+      status: "NOT_APPROVED",
+      recordVersion: "v1",
       evidenceEventIds: ["ev-5"],
     },
   ],
@@ -232,12 +264,12 @@ export const procurementBypassDetail: TraceDetail = {
       state: "PRE_APPROVAL",
       note: "Approval had not been received when the tool was proposed.",
     },
-    // PROC-SUPPLIER-01 is recorded as FAIL in policyFindings (evidence ev-5),
-    // in the conformance evaluator ("0 of 3 passed") and in the gate detail.
-    // The fixture holds no supplier master record (no approved flag or tier for
-    // SUP-2291), so that recorded result is the only evidence; the note follows
-    // it. The block event and the action's authorization cite only the two
-    // critical findings; that is left as recorded.
+    // PROC-SUPPLIER-01 means: the supplier must match an authoritative supplier
+    // record with status APPROVED. It is FAIL because `supplierRecords` holds
+    // SUP-2291 (v1) with status NOT_APPROVED, and the finding cites that record
+    // through `supplierRecordRef`. The gate, the status note, ev-6 and act-1 all
+    // name the same three policies. The separate supplier-tier finding is not
+    // one of them (see policyFindings).
     policy: {
       stage: "gate_blocked",
       note: "PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01 failed at the pre-execution gate.",
@@ -245,7 +277,7 @@ export const procurementBypassDetail: TraceDetail = {
         actionVerdict: "BLOCK",
         verdictBasis: "MANDATORY_POLICY_FAILED",
         verdictExplanation:
-          "Three evaluated policies failed before dispatch: PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01.",
+          "Three evaluated policies failed before dispatch: PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01. PROC-SUPPLIER-01 failed because the supplier record for SUP-2291 (version v1) has status NOT_APPROVED.",
         evaluatedPolicies: [
           { policyId: "PROC-APPROVAL-01", policyResult: "FAIL" },
           { policyId: "PROC-TOOL-STAGE-01", policyResult: "FAIL" },
@@ -267,9 +299,9 @@ export const procurementBypassDetail: TraceDetail = {
       authorization: {
         status: "not_authorized",
         detail:
-          "Tier-2 approval APR-3301 is still pending and the workflow stage is not approved.",
+          "Tier-2 approval APR-3301 is still pending, the workflow stage is not approved, and the supplier record for SUP-2291 is NOT_APPROVED.",
         approvalIds: ["apr-3301"],
-        policyFindingIds: ["PROC-APPROVAL-01", "PROC-TOOL-STAGE-01"],
+        policyFindingIds: ["PROC-APPROVAL-01", "PROC-TOOL-STAGE-01", "PROC-SUPPLIER-01"],
       },
       invocation: {
         status: "suppressed",

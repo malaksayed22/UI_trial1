@@ -7,7 +7,7 @@ import type {
   StateTransition,
   TraceStatus,
 } from "./execution";
-import type { PolicyFinding, SecurityFinding } from "./governance";
+import type { PolicyFinding, SecurityFinding, SupplierRecord } from "./governance";
 
 /**
  * Failure labels from taxonomy v1, as used by the UI. The taxonomy is owned
@@ -180,6 +180,8 @@ export type TraceDetail = {
   status: TraceStatus;
   actions: ActionRecord[];
   approvals: ApprovalRecord[];
+  /** Supplier records the policy findings relied on. Absent when none were recorded. */
+  supplierRecords?: SupplierRecord[];
   /** TRD-22. Absent when the trace does not carry transition data. */
   stateTransitions?: StateTransition[];
   delivery: ResponseDelivery;

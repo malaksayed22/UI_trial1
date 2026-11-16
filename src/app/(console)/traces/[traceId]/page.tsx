@@ -78,7 +78,11 @@ const TraceDetailPage = async ({ params }: TraceDetailPageProps) => {
 
         <EvaluatorEvidence traceId={traceId} results={trace.evaluators} />
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <PolicyFindings traceId={traceId} findings={trace.policyFindings} />
+          <PolicyFindings
+            traceId={traceId}
+            findings={trace.policyFindings}
+            supplierRecords={trace.supplierRecords}
+          />
           <SecurityFindings traceId={traceId} findings={trace.securityFindings} />
         </div>
 

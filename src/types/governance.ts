@@ -1,5 +1,25 @@
 import type { Criticality, Decision, Role } from "./common";
 
+/**
+ * An authoritative supplier record, as read from the supplier system of record.
+ * PROC-SUPPLIER-01 passes only when the proposed purchase order's supplier
+ * matches a record with status APPROVED (Nour's definition). The status values
+ * are the two this contract is known to use; a third value is NOT FOUND.
+ */
+export type SupplierRecord = {
+  supplierId: string;
+  status: "APPROVED" | "NOT_APPROVED";
+  recordVersion: string;
+  /** Trace events that show this record was the one used. */
+  evidenceEventIds: string[];
+};
+
+/** Points a finding at the exact supplier record, and version, it relied on. */
+export type SupplierRecordRef = {
+  supplierId: string;
+  recordVersion: string;
+};
+
 /** Deterministic procurement policy check (owned by the governance engine). */
 export type PolicyFinding = {
   policyId: string;
@@ -10,6 +30,8 @@ export type PolicyFinding = {
   criticality: Criticality;
   /** Trace events that support this finding. */
   evidenceEventIds: string[];
+  /** The supplier record this finding relied on. Set only by supplier checks. */
+  supplierRecordRef?: SupplierRecordRef;
 };
 
 /**

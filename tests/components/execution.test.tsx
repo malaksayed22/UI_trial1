@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { PolicyVerdictTag } from "@/components/ui/policy-verdict-tag";
+import { PolicyFindings } from "@/features/evidence/policy-findings";
 import { ActionLifecycle } from "@/features/execution/action-lifecycle";
 import { ApprovalRecords } from "@/features/execution/approval-records";
 import { StageBoundaries } from "@/features/execution/stage-boundaries";
@@ -465,6 +466,52 @@ describe("policy gate tile", () => {
     const detail = trace(DENIED);
     render(<TraceStatusPanel status={detail.status} decision={detail.summary.decision} />);
     expect(screen.queryByText("Action verdict")).not.toBeInTheDocument();
+  });
+});
+
+describe("supplier record evidence on trace-8f21c9a4", () => {
+  const detail = trace(BYPASS);
+
+  it("shows the supplier record, its version and NOT_APPROVED under PROC-SUPPLIER-01", () => {
+    render(
+      <PolicyFindings
+        traceId={BYPASS}
+        findings={detail.policyFindings}
+        supplierRecords={detail.supplierRecords}
+      />
+    );
+    const supplier = screen.getByText("PROC-SUPPLIER-01").closest("li")!;
+    expect(within(supplier).getByText("SUP-2291")).toBeInTheDocument();
+    expect(within(supplier).getByText("v1")).toBeInTheDocument();
+    expect(within(supplier).getByText("NOT_APPROVED")).toBeInTheDocument();
+    expect(within(supplier).getByText(/status APPROVED/)).toBeInTheDocument();
+    expect(within(supplier).queryByText(/secondary review/)).not.toBeInTheDocument();
+  });
+
+  it("shows the secondary-review finding as its own finding, not under PROC-SUPPLIER-01", () => {
+    render(
+      <PolicyFindings
+        traceId={BYPASS}
+        findings={detail.policyFindings}
+        supplierRecords={detail.supplierRecords}
+      />
+    );
+    const tier = screen.getByText(/secondary review for orders above \$25,000/).closest("li")!;
+    expect(within(tier).getByText("supplier_tier_check")).toBeInTheDocument();
+    expect(within(tier).queryByText("PROC-SUPPLIER-01")).not.toBeInTheDocument();
+    expect(within(tier).queryByText("NOT_APPROVED")).not.toBeInTheDocument();
+  });
+
+  it("says the record is not included when the view does not load supplier records", () => {
+    render(<PolicyFindings traceId={BYPASS} findings={detail.policyFindings} />);
+    expect(screen.getByText(/record not included in this view/)).toBeInTheDocument();
+    expect(screen.queryByText("NOT_APPROVED")).not.toBeInTheDocument();
+  });
+
+  it("gives the supplier reason in the Policy gate tile", () => {
+    render(<TraceStatusPanel status={detail.status} decision={detail.summary.decision} />);
+    expect(screen.getByText(/supplier record for SUP-2291 \(version v1\) has status NOT_APPROVED/)).toBeInTheDocument();
+    expect(screen.getByText("MANDATORY_POLICY_FAILED")).toBeInTheDocument();
   });
 });
 

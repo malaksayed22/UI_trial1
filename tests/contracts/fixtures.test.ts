@@ -9,11 +9,15 @@ import {
   traceSummaries,
 } from "@/mocks/fixtures";
 import { failureLabelText, rootCauseText } from "@/lib/labels";
+import type { Investigation, RcaCause } from "@/types";
 import {
   SUPPLIER_POLICY_ID,
   supplierEvidenceProblems,
   supplierFindingOf,
 } from "../helpers/supplier-evidence";
+
+/** Ranked causes only. "Not assessed" has none, and is checked on its own. */
+const rankedCauses = (rca: Investigation["rca"]): RcaCause[] => (Array.isArray(rca) ? rca : []);
 
 /**
  * Contract checks: the fixtures must stay internally consistent so the UI can
@@ -45,7 +49,9 @@ describe("trace fixtures", () => {
       const links = [
         ...detail.evaluators.flatMap(item => item.evidenceEventIds),
         ...detail.policyFindings.flatMap(item => item.evidenceEventIds),
-        ...(investigation?.rca.flatMap(item => item.evidenceEventIds) ?? []),
+        ...(investigation ? rankedCauses(investigation.rca) : []).flatMap(
+          item => item.evidenceEventIds
+        ),
       ];
       links.forEach(id => expect(ids.has(id), `${traceId}: ${id}`).toBe(true));
     });
@@ -85,13 +91,14 @@ describe("trace fixtures", () => {
 describe("investigation fixtures", () => {
   it("lists RCA causes in rank order with descending evidence scores", () => {
     Object.values(investigations).forEach(investigation => {
-      investigation.rca.forEach((cause, index) => {
+      const causes = rankedCauses(investigation.rca);
+      causes.forEach((cause, index) => {
         expect(cause.rank).toBe(index + 1);
         expect(rootCauseText[cause.causeId]).toBeDefined();
-        const next = investigation.rca[index + 1];
+        const next = causes[index + 1];
         if (next) expect(cause.evidenceScore).toBeGreaterThanOrEqual(next.evidenceScore);
       });
-      expect(investigation.rca.length).toBeLessThanOrEqual(3);
+      expect(causes.length).toBeLessThanOrEqual(3);
     });
   });
 
@@ -921,13 +928,71 @@ describe("gate, findings, evidence links and status notes agree across the three
     expect(traceDetails["trace-a8c63e15"]!.scenarioNote).toBeUndefined();
   });
 
-  it("does not claim Agent-originated behavior or a settled root cause on the synthetic trace", () => {
-    investigations["trace-8f21c9a4"]!.rca.forEach(cause =>
-      expect(cause.explanation).toMatch(/synthetic boundary case/)
-    );
-    expect(investigations["trace-8f21c9a4"]!.rca.map(cause => cause.causeId)).not.toContain(
-      "policy_configuration"
-    );
+  describe("RCA on the synthetic boundary case", () => {
+    const NOT_ASSESSED = "RCA not assessed for this synthetic boundary case";
+    const synthetic = () => investigations["trace-8f21c9a4"]!;
+
+    it("is marked not assessed, with exactly the agreed message", () => {
+      expect(synthetic().rca).toEqual({ status: "not_assessed", message: NOT_ASSESSED });
+    });
+
+    it("is not an empty or ranked list, so it cannot read as 'no cause found'", () => {
+      expect(Array.isArray(synthetic().rca)).toBe(false);
+      expect(rankedCauses(synthetic().rca)).toHaveLength(0);
+    });
+
+    it("carries no ranked cause, cause ID or evidence score anywhere on the investigation", () => {
+      const text = JSON.stringify(synthetic());
+      expect(text).not.toMatch(/"causeId"/);
+      expect(text).not.toMatch(/"evidenceScore"/);
+      expect(text).not.toMatch(/"agent_workflow"/);
+      expect(text).not.toMatch(/"rank"/);
+    });
+
+    it("keeps no old RCA score or cause wording in the trace detail either", () => {
+      const text = JSON.stringify(traceDetails["trace-8f21c9a4"]) + JSON.stringify(synthetic());
+      expect(text).not.toMatch(/\b0\.91\b/);
+      expect(text).not.toMatch(/\b0\.74\b/);
+      expect(text).not.toMatch(/Agent workflow/i);
+      expect(text).not.toMatch(/prompt cause/i);
+    });
+
+    it("keeps the policy findings and the synthetic boundary note", () => {
+      expect(synthetic().ruleFindings.map(finding => finding.policyId)).toEqual(
+        traceDetails["trace-8f21c9a4"]!.policyFindings.map(finding => finding.policyId)
+      );
+      expect(traceDetails["trace-8f21c9a4"]!.scenarioNote?.kind).toBe("synthetic_boundary_case");
+    });
+  });
+
+  describe("RCA on every other trace is unchanged", () => {
+    const PINNED_RCA: Record<string, [RcaCause["causeId"], number][]> = {
+      "trace-d41f6b27": [["agent_workflow", 0.89], ["prompt", 0.67]],
+      "trace-a8c63e15": [["agent_workflow", 0.31]],
+      "trace-b7d2e4c1": [],
+      "trace-9a03e771": [],
+      "trace-c35e8a90": [["agent_workflow", 0.58]],
+      "trace-e5a7c302": [],
+      "trace-f9b1d7a4": [["retriever", 0.93]],
+      "trace-6c41d9f2": [["retriever", 0.88], ["retrieved_context", 0.66], ["prompt", 0.29]],
+      "trace-2f88b1e0": [["model_generation", 0.82], ["retrieved_context", 0.57], ["prompt", 0.31]],
+    };
+
+    it("covers every investigation except the synthetic boundary case", () => {
+      expect(Object.keys(PINNED_RCA).sort()).toEqual(
+        Object.keys(investigations).filter(id => id !== "trace-8f21c9a4").sort()
+      );
+    });
+
+    Object.entries(PINNED_RCA).forEach(([traceId, expected]) => {
+      it(`${traceId} keeps its ranked causes and scores`, () => {
+        const rca = investigations[traceId]!.rca;
+        expect(Array.isArray(rca)).toBe(true);
+        expect(rankedCauses(rca).map(cause => [cause.causeId, cause.evidenceScore])).toEqual(
+          expected
+        );
+      });
+    });
   });
 
   it("keeps the cancelled-approval link unused on the three traces", () => {

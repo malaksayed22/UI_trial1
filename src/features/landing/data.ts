@@ -50,8 +50,8 @@ export const pipelineSteps = [
     number: "03",
     title: "Root cause",
     summary: "A ranked top‑3 with the events that justify each cause.",
-    headline: "Why it failed, ranked",
-    caption: "Each cause cites the exact events it was derived from, so a reviewer can disagree with evidence.",
+    headline: "A cause only when evidence supports one",
+    caption: "A ranked cause cites the exact events it was derived from, so a reviewer can disagree with evidence. This trace is a synthetic boundary case, so no cause is ranked.",
   },
   {
     key: "gate",
@@ -82,11 +82,6 @@ export const evaluatorScores = [
   { name: "Unsupported-claim risk", family: "semantic", value: 0.88, note: "lower is better", tone: "review" },
   { name: "Prompt-injection detector", family: "security", value: 0.04, note: "lower is better", tone: "pass" },
   { name: "Groundedness", family: "rag", value: null, note: "not applicable", tone: "muted" },
-] as const;
-
-export const rootCauses = [
-  { rank: 1, cause: "agent_workflow", score: 0.91, text: "Tool proposed while workflow_stage was PRE_APPROVAL (synthetic boundary case; not Agent-originated).", events: "ev-4 · ev-5" },
-  { rank: 2, cause: "prompt", score: 0.74, text: "Not established: the proposal was forced in this synthetic boundary case.", events: "ev-2 · ev-4" },
 ] as const;
 
 export const gateMetrics = [

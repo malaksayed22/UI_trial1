@@ -8,7 +8,7 @@ const DEMO_GATE = "gate-2026-1001-01";
 /** Shortcuts into the reviewed approval-bypass story, available from every surface. */
 const investigationItems: PaletteItem[] = [
   { id: "demo-trace", group: "Investigations", label: "Approval-bypass attempt", hint: DEMO_TRACE, href: routes.trace(DEMO_TRACE), keywords: "procurement purchase order block" },
-  { id: "demo-rca", group: "Investigations", label: "Root cause for the approval bypass", hint: "Failure & RCA", href: routes.investigation(DEMO_TRACE), keywords: "rca cause" },
+  { id: "demo-rca", group: "Investigations", label: "Failure investigation for the approval bypass", hint: "Failure & RCA", href: routes.investigation(DEMO_TRACE), keywords: "rca cause" },
   { id: "demo-gate", group: "Investigations", label: "Retriever v2.4.0 release gate", hint: "BLOCK", href: routes.releaseGate(DEMO_GATE), keywords: "release candidate regression" },
   { id: "blocked", group: "Investigations", label: "All blocked traces", hint: "Trace Explorer", href: tracesHref({ decision: "BLOCK" }), keywords: "filter decision" },
 ];

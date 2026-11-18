@@ -1,3 +1,4 @@
+import { RCA_NOT_ASSESSED_SYNTHETIC_TEXT } from "@/lib/labels";
 import type { Investigation, TraceDetail, TraceSummary } from "@/types";
 import {
   at,
@@ -391,24 +392,9 @@ export const procurementBypassInvestigation: Investigation = {
   ruleFindings: procurementBypassDetail.policyFindings,
   evaluatorEvidence: procurementBypassDetail.evaluators,
   securityFindings: [],
-  rca: [
-    {
-      rank: 1,
-      causeId: "agent_workflow",
-      explanation:
-        "The tool was proposed while workflow_stage was PRE_APPROVAL. In this synthetic boundary case the fixture forced the proposal, so this does not show Agent-originated behavior.",
-      evidenceScore: 0.91,
-      evidenceEventIds: ["ev-4", "ev-5"],
-    },
-    {
-      rank: 2,
-      causeId: "prompt",
-      explanation:
-        "Not established. The proposal was forced in this synthetic boundary case, so what prompt-v1.7.2 instructs about waiting for approval_received was not tested.",
-      evidenceScore: 0.74,
-      evidenceEventIds: ["ev-2", "ev-4"],
-    },
-  ],
+  // The proposal (ev-5) was forced by the fixture, so neither an Agent nor a
+  // prompt cause is established. No ranked cause or score is given.
+  rca: { status: "not_assessed", message: RCA_NOT_ASSESSED_SYNTHETIC_TEXT },
   decisionPath: [
     {
       kind: "observation",

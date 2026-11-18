@@ -148,6 +148,16 @@ export type RcaCause = {
   evidenceEventIds: string[];
 };
 
+/**
+ * RCA was deliberately not run for this trace. This is not the same as an empty
+ * cause list, which means a failure was looked for and none was found (or the
+ * trace is NORMAL). The message is shown to the user as written.
+ */
+export type RcaNotAssessed = {
+  status: "not_assessed";
+  message: string;
+};
+
 export type ClassifierKind = "rules" | "logistic_regression" | "xgboost";
 
 export type Investigation = {
@@ -163,8 +173,11 @@ export type Investigation = {
   ruleFindings: PolicyFinding[];
   evaluatorEvidence: EvaluatorResult[];
   securityFindings: SecurityFinding[];
-  /** Empty for NORMAL traces. */
-  rca: RcaCause[];
+  /**
+   * Ranked causes. An empty list means no failure was found (NORMAL traces).
+   * RcaNotAssessed means RCA was not run, which is a different statement.
+   */
+  rca: RcaCause[] | RcaNotAssessed;
   decisionPath: DecisionStep[];
   decision: Decision;
   reviewHistory: ReviewEntry[];

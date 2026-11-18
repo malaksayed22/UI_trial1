@@ -310,8 +310,6 @@ Below it, a four-column desktop grid of equal panels:
 - approval_required_before_po
 - workflow_stage must equal ‘approved’ before create_purchase_order
 - criticality: critical in rose
-- supplier_tier_check: SUP-2291 requires secondary review above $25,000
-- criticality: high in amber
 
 2. EVALUATOR EVIDENCE — subtitle “Scores are not ground truth.”
 - Semantic evaluator 0.88: Draft response asserts PO “submitted” without a completed create_purchase_order success event.
@@ -319,9 +317,7 @@ Below it, a four-column desktop grid of equal panels:
 - Security evaluator n/a: No attack pattern detected.
 
 3. TOP-3 RCA CAUSES — subtitle “Evidence-ranked candidates.”
-- 01 Approval requirement bypassed — tool called at PRE_APPROVAL stage — evidence score 0.91.
-- 02 Missing approval_received flag before tool proposal — evidence score 0.74.
-- 03 Supplier tier threshold not re-checked after amount increase — evidence score 0.52.
+- No ranked causes or scores. Show the message “RCA not assessed for this synthetic boundary case”.
 
 4. DECISION PATH — subtitle “Why the final verdict won.”
 - → workflow_stage = PRE_APPROVAL at time of tool call.

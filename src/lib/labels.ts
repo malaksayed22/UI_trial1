@@ -44,6 +44,9 @@ export const rootCauseText: Record<RootCauseId, string> = {
   malicious_input: "Malicious input",
 };
 
+/** Shown wherever RCA was deliberately not run for a synthetic boundary case. */
+export const RCA_NOT_ASSESSED_SYNTHETIC_TEXT = "RCA not assessed for this synthetic boundary case";
+
 export const classifierText: Record<ClassifierKind, string> = {
   rules: "Deterministic rules",
   logistic_regression: "Logistic regression",

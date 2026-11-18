@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { routes } from "@/lib/routes";
 import { TRACE_ID, traceSpans, trend } from "./data";
 import { Eyebrow, SpotlightCard } from "./primitives";
+import { RcaNotAssessed } from "./rca-not-assessed";
 
 type ScreenCardProps = {
   number: string;
@@ -151,24 +152,7 @@ const RetrievalPreview = () => (
   </div>
 );
 
-const CausePreview = () => (
-  <ul className="space-y-3">
-    {[
-      ["agent_workflow", 0.91],
-      ["prompt", 0.74],
-      ["policy_configuration", 0.52],
-    ].map(([cause, score], index) => (
-      <li key={cause} className="flex items-center gap-3 font-mono text-[11px]">
-        <span className="flex size-5 items-center justify-center rounded-full bg-raised text-ink">{index + 1}</span>
-        <span className="w-36 truncate text-ink">{cause}</span>
-        <span className="h-1 flex-1 overflow-hidden rounded-full bg-raised">
-          <span className={cn("block h-full rounded-full", index === 0 ? "bg-ink" : "bg-muted/50")} style={{ width: `${Number(score) * 100}%` }} />
-        </span>
-        <span className="tabular-nums text-muted">{Number(score).toFixed(2)}</span>
-      </li>
-    ))}
-  </ul>
-);
+const CausePreview = () => <RcaNotAssessed />;
 
 const gates = [
   { label: "retriever-v2.4.0", verdict: "BLOCK" },

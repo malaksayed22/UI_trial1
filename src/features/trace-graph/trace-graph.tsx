@@ -23,6 +23,7 @@ const kindText: Record<GraphNodeKind, string> = {
   agent_state: "Agent state",
   tool_call: "Tool proposal",
   tool_result: "Tool result",
+  supplier_directory_snapshot: "Supplier directory snapshot",
   final_response: "Final response",
   approval: "Approval",
 };

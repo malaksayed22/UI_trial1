@@ -9,6 +9,11 @@ import {
   traceSummaries,
 } from "@/mocks/fixtures";
 import { failureLabelText, rootCauseText } from "@/lib/labels";
+import {
+  SUPPLIER_POLICY_ID,
+  supplierEvidenceProblems,
+  supplierFindingOf,
+} from "../helpers/supplier-evidence";
 
 /**
  * Contract checks: the fixtures must stay internally consistent so the UI can
@@ -585,14 +590,10 @@ describe("stage and gate fixtures (TRD-22, TRD-23, policy gate)", () => {
     });
   });
 
-  it("allows a finding outside the gate only for the separate supplier-tier rule", () => {
+  it("has no finding outside the three evaluated gate policies", () => {
     gates.forEach(({ detail, gate }) => {
-      const gated = new Set(gate.evaluatedPolicies.map(policy => policy.policyId));
-      const outside = detail.policyFindings
-        .filter(finding => !gated.has(finding.policyId))
-        .map(finding => finding.rule);
-      expect(outside, detail.summary.traceId).toEqual(
-        detail.summary.traceId === "trace-8f21c9a4" ? ["supplier_tier_check"] : []
+      expect(detail.policyFindings.map(finding => finding.policyId), detail.summary.traceId).toEqual(
+        gate.evaluatedPolicies.map(policy => policy.policyId)
       );
     });
   });
@@ -636,79 +637,308 @@ describe("policy status note, findings and conformance evaluator agree", () => {
   });
 });
 
-describe("trace-8f21c9a4 supplier policy (PROC-SUPPLIER-01)", () => {
-  const bypass = traceDetails["trace-8f21c9a4"]!;
-  const THREE = ["PROC-APPROVAL-01", "PROC-TOOL-STAGE-01", "PROC-SUPPLIER-01"];
-  const supplierFinding = () =>
-    bypass.policyFindings.find(finding => finding.policyId === "PROC-SUPPLIER-01")!;
+const APPROVAL_FLOW = ["trace-8f21c9a4", "trace-9a03e771", "trace-a8c63e15"] as const;
+const approvalFlow = () => APPROVAL_FLOW.map(id => traceDetails[id]!);
+const THREE_POLICIES = ["PROC-APPROVAL-01", "PROC-TOOL-STAGE-01", "PROC-SUPPLIER-01"];
 
-  it("holds an authoritative supplier record for SUP-2291 that is NOT_APPROVED", () => {
-    expect(bypass.supplierRecords).toHaveLength(1);
-    const record = bypass.supplierRecords![0]!;
-    expect(record.supplierId).toBe("SUP-2291");
-    expect(record.status).toBe("NOT_APPROVED");
-    expect(record.recordVersion).toBeTruthy();
-    expect(record.evidenceEventIds.length).toBeGreaterThan(0);
-    const events = new Set(bypass.events.map(event => event.eventId));
-    record.evidenceEventIds.forEach(id => expect(events.has(id)).toBe(true));
-  });
+describe("supplier evidence (PROC-SUPPLIER-01) on the three approval-flow traces", () => {
+  const snapshotOf = (detail: (typeof traceDetails)[string]) => {
+    const ref = supplierFindingOf(detail)!.supplierRecordRef!;
+    const event = detail.events.find(item => item.eventId === ref.eventId);
+    if (event?.type !== "supplier_directory_snapshot") throw new Error("not a snapshot");
+    return event;
+  };
 
-  it("makes PROC-SUPPLIER-01 FAIL and cites that exact record and version", () => {
-    const finding = supplierFinding();
-    expect(finding.outcome).toBe("fail");
-    const record = bypass.supplierRecords!.find(
-      item =>
-        item.supplierId === finding.supplierRecordRef?.supplierId &&
-        item.recordVersion === finding.supplierRecordRef?.recordVersion
+  it("has no supplier-evidence problems on any of the three traces", () => {
+    approvalFlow().forEach(detail =>
+      expect(supplierEvidenceProblems(detail), detail.summary.traceId).toEqual([])
     );
-    expect(record?.status).toBe("NOT_APPROVED");
-    expect(finding.rule).not.toBe("supplier_tier_check");
-    expect(finding.description).toMatch(/status APPROVED/);
-    expect(finding.description).not.toMatch(/secondary review/);
   });
 
-  it("fails PROC-SUPPLIER-01 only because the record is not approved", () => {
-    bypass.supplierRecords!.forEach(record => {
-      const finding = supplierFinding();
-      const cited = finding.supplierRecordRef?.supplierId === record.supplierId;
-      if (cited) expect(finding.outcome === "fail").toBe(record.status === "NOT_APPROVED");
+  it("cites a distinct supplier directory snapshot event, never the proposal", () => {
+    approvalFlow().forEach(detail => {
+      const finding = supplierFindingOf(detail)!;
+      const proposals = detail.actions.map(action => action.proposal.eventId);
+      expect(proposals).not.toContain(finding.supplierRecordRef!.eventId);
+      finding.evidenceEventIds.forEach(id => expect(proposals).not.toContain(id));
+      expect(finding.evidenceEventIds).toEqual([finding.supplierRecordRef!.eventId]);
+      expect(snapshotOf(detail).type).toBe("supplier_directory_snapshot");
     });
   });
 
-  it("keeps the secondary-review finding separate and out of the three gate policies", () => {
-    const tier = bypass.policyFindings.filter(finding => finding.rule === "supplier_tier_check");
-    expect(tier).toHaveLength(1);
-    expect(tier[0]!.policyId).not.toBe("PROC-SUPPLIER-01");
-    expect(tier[0]!.description).toMatch(/secondary review for orders above \$25,000/);
-    expect(tier[0]!.supplierRecordRef).toBeUndefined();
-    expect(THREE).not.toContain(tier[0]!.policyId);
+  it("records supplier ID, status, record version and source on each snapshot", () => {
+    approvalFlow().forEach(detail => {
+      const { lookup } = snapshotOf(detail);
+      expect(lookup.kind).toBe("record");
+      if (lookup.kind !== "record") return;
+      expect(lookup.record.supplierId).toMatch(/^SUP-\d{4}$/);
+      expect(["APPROVED", "NOT_APPROVED"]).toContain(lookup.record.status);
+      expect(lookup.record.recordVersion).toBe("v1");
+      expect(lookup.record.recordVersionSynthetic).toBe(true);
+      expect(lookup.record.source).toBeTruthy();
+    });
   });
 
-  it("fails the same three policies in the findings, the gate and the status note", () => {
-    const failed = gateFindings(bypass).filter(finding => finding.outcome === "fail");
-    expect(failed.map(finding => finding.policyId)).toEqual(THREE);
-    expect(bypass.status.policy.gate?.evaluatedPolicies.map(item => item.policyId)).toEqual(THREE);
-    expect(bypass.status.policy.gate?.evaluatedPolicies.map(item => item.policyResult)).toEqual([
-      "FAIL",
-      "FAIL",
-      "FAIL",
+  it("reads the supplier directory before the proposal and the policy check", () => {
+    approvalFlow().forEach(detail => {
+      const snapshot = snapshotOf(detail);
+      const proposal = detail.events.find(
+        item => item.eventId === detail.actions[0]!.proposal.eventId
+      )!;
+      expect(snapshot.sequence, detail.summary.traceId).toBeLessThan(proposal.sequence);
+      detail.events.forEach(event => {
+        const checksPolicy =
+          (event.type === "tool_result" && event.policyFindingIds.length > 0) ||
+          (event.type === "agent_state" && event.to === "policy_checked");
+        if (checksPolicy) expect(snapshot.sequence).toBeLessThan(event.sequence);
+      });
+      expect(new Date(snapshot.timestamp).getTime()).toBeLessThan(new Date(proposal.timestamp).getTime());
+    });
+  });
+
+  it("keeps event sequences contiguous and parents earlier after the insertion", () => {
+    approvalFlow().forEach(detail => {
+      expect(detail.events.map(event => event.sequence)).toEqual(
+        detail.events.map((_, index) => index + 1)
+      );
+      const sequenceOf = new Map(detail.events.map(event => [event.eventId, event.sequence]));
+      detail.events.forEach(event => {
+        if (event.parentId) {
+          expect(sequenceOf.get(event.parentId)!).toBeLessThan(event.sequence);
+        }
+      });
+    });
+  });
+
+  it("gives all three traces the same PROC-SUPPLIER-01 rule, wording and critical severity", () => {
+    const findings = approvalFlow().map(detail => supplierFindingOf(detail)!);
+    expect(new Set(findings.map(finding => finding.rule)).size).toBe(1);
+    expect(new Set(findings.map(finding => finding.description)).size).toBe(1);
+    findings.forEach(finding => {
+      expect(finding.criticality).toBe("critical");
+      expect(finding.description).toMatch(/status APPROVED/);
+      expect(finding.description).toMatch(/regardless of order value/);
+      expect(finding.description).not.toMatch(/tier|secondary review|\$/i);
+    });
+  });
+
+  it("fails on a NOT_APPROVED record and passes on an APPROVED one", () => {
+    const expected = {
+      "trace-8f21c9a4": ["NOT_APPROVED", "fail"],
+      "trace-9a03e771": ["APPROVED", "pass"],
+      "trace-a8c63e15": ["APPROVED", "pass"],
+    } as const;
+    APPROVAL_FLOW.forEach(id => {
+      const detail = traceDetails[id]!;
+      const { lookup } = snapshotOf(detail);
+      expect(lookup.kind === "record" && lookup.record.status).toBe(expected[id][0]);
+      expect(supplierFindingOf(detail)!.outcome).toBe(expected[id][1]);
+    });
+  });
+
+  it("has no tier finding, no placeholder policy ID and no tier wording anywhere", () => {
+    const everything = JSON.stringify([
+      Object.values(traceDetails),
+      Object.values(investigations),
     ]);
-    THREE.forEach(id => expect(bypass.status.policy.note).toContain(id));
+    expect(everything).not.toMatch(/supplier.tier|supplier_tier|secondary review|PLACEHOLDER_POLICY_ID/i);
+    approvalFlow().forEach(detail => {
+      expect(detail.policyFindings).toHaveLength(3);
+      expect(detail.policyFindings.map(finding => finding.policyId)).toEqual(THREE_POLICIES);
+    });
+  });
+});
+
+describe("supplier evidence checks catch broken evidence", () => {
+  const broken = (
+    id: (typeof APPROVAL_FLOW)[number],
+    change: (copy: (typeof traceDetails)[string]) => void
+  ) => {
+    const copy = structuredClone(traceDetails[id]!);
+    change(copy);
+    return supplierEvidenceProblems(copy).join(" | ");
+  };
+  const BYPASS = "trace-8f21c9a4";
+
+  it("rejects a proposal event as supplier evidence", () => {
+    const problems = broken(BYPASS, copy => {
+      const finding = supplierFindingOf(copy)!;
+      finding.evidenceEventIds = ["ev-5"];
+      finding.supplierRecordRef!.eventId = "ev-5";
+    });
+    expect(problems).toMatch(/tool_call event/);
+    expect(problems).toMatch(/cannot support a supplier status/);
+    expect(problems).toMatch(/not a supplier directory snapshot/);
   });
 
-  it("lists all three failed policy IDs on the block event and on the action", () => {
-    const block = bypass.events.find(event => event.eventId === "ev-6");
-    expect(block?.type).toBe("tool_result");
-    if (block?.type === "tool_result") expect(block.policyFindingIds).toEqual(THREE);
-    expect(bypass.actions[0]!.authorization.policyFindingIds).toEqual(THREE);
+  it("detects a mismatched supplier ID", () => {
+    expect(
+      broken(BYPASS, copy => {
+        supplierFindingOf(copy)!.supplierRecordRef!.supplierId = "SUP-0000";
+      })
+    ).toMatch(/supplier ID mismatch/);
   });
 
-  it("keeps action_verdict BLOCK and verdict_basis MANDATORY_POLICY_FAILED", () => {
-    expect(bypass.status.policy.gate?.actionVerdict).toBe("BLOCK");
-    expect(bypass.status.policy.gate?.verdictBasis).toBe("MANDATORY_POLICY_FAILED");
+  it("detects a mismatched record version", () => {
+    expect(
+      broken(BYPASS, copy => {
+        supplierFindingOf(copy)!.supplierRecordRef!.recordVersion = "v9";
+      })
+    ).toMatch(/record version mismatch/);
   });
 
-  it("leaves the approval-record link provisional and unused on this trace", () => {
-    expect(bypass.actions[0]!.authorization.approvalRecordRefs).toBeUndefined();
+  it("detects missing supplier evidence, whether the reference or the event is gone", () => {
+    expect(
+      broken(BYPASS, copy => {
+        delete supplierFindingOf(copy)!.supplierRecordRef;
+        supplierFindingOf(copy)!.evidenceEventIds = [];
+      })
+    ).toMatch(/no supplier evidence recorded/);
+    expect(
+      broken(BYPASS, copy => {
+        copy.events = copy.events.filter(event => event.eventId !== "ev-sup-1");
+      })
+    ).toMatch(/not in the trace/);
+  });
+
+  it("detects supplier evidence that comes after the policy check", () => {
+    expect(
+      broken(BYPASS, copy => {
+        const snapshot = copy.events.find(event => event.eventId === "ev-sup-1")!;
+        snapshot.sequence = 99;
+      })
+    ).toMatch(/not before/);
+  });
+
+  it("detects an outcome that disagrees with the record status", () => {
+    expect(
+      broken(BYPASS, copy => {
+        supplierFindingOf(copy)!.outcome = "pass";
+      })
+    ).toMatch(/does not follow status NOT_APPROVED/);
+    expect(
+      broken("trace-9a03e771", copy => {
+        supplierFindingOf(copy)!.outcome = "fail";
+      })
+    ).toMatch(/does not follow status APPROVED/);
+  });
+
+  it("treats an unknown status and a failed lookup as problems that are not NOT_APPROVED", () => {
+    (["status_unknown", "lookup_failed"] as const).forEach(kind => {
+      const problems = broken(BYPASS, copy => {
+        const snapshot = copy.events.find(event => event.eventId === "ev-sup-1")!;
+        if (snapshot.type === "supplier_directory_snapshot") {
+          snapshot.lookup = { kind, supplierId: "SUP-2291", source: "test", reason: "test" };
+        }
+      });
+      expect(problems).toMatch(new RegExp(`lookup is ${kind}`));
+      expect(problems).not.toMatch(/NOT_APPROVED/);
+    });
+  });
+});
+
+describe("gate, findings, evidence links and status notes agree across the three traces", () => {
+  const EXPECTED = {
+    "trace-8f21c9a4": { verdict: "BLOCK", basis: "MANDATORY_POLICY_FAILED", result: "FAIL" },
+    "trace-9a03e771": { verdict: "ALLOW", basis: "ALL_APPLICABLE_PASSED", result: "PASS" },
+    "trace-a8c63e15": { verdict: "ALLOW", basis: "ALL_APPLICABLE_PASSED", result: "PASS" },
+  } as const;
+
+  it("gives each trace its verdict, basis code and one result per policy", () => {
+    APPROVAL_FLOW.forEach(id => {
+      const gate = traceDetails[id]!.status.policy.gate!;
+      expect(gate.actionVerdict, id).toBe(EXPECTED[id].verdict);
+      expect(gate.verdictBasis, id).toBe(EXPECTED[id].basis);
+      expect(gate.evaluatedPolicies.map(policy => policy.policyId), id).toEqual(THREE_POLICIES);
+      if (id === "trace-8f21c9a4") {
+        expect(gate.evaluatedPolicies.map(policy => policy.policyResult)).toEqual(["FAIL", "FAIL", "FAIL"]);
+      } else {
+        expect(gate.evaluatedPolicies.map(policy => policy.policyResult)).toEqual(["PASS", "PASS", "PASS"]);
+      }
+    });
+  });
+
+  it("matches every gate result to the finding and the conformance evaluator", () => {
+    APPROVAL_FLOW.forEach(id => {
+      const detail = traceDetails[id]!;
+      const gate = detail.status.policy.gate!;
+      gate.evaluatedPolicies.forEach(policy => {
+        const finding = detail.policyFindings.find(item => item.policyId === policy.policyId)!;
+        expect(policy.policyResult === "PASS" ? "pass" : "fail", `${id} ${policy.policyId}`).toBe(
+          finding.outcome
+        );
+      });
+      const passed = detail.policyFindings.filter(finding => finding.outcome === "pass").length;
+      expect(detail.evaluators.find(item => item.family === "policy")?.finding).toBe(
+        `${passed} of 3 procurement policies passed.`
+      );
+    });
+  });
+
+  it("lists all three policy IDs on every action, and on the policy engine's result event", () => {
+    APPROVAL_FLOW.forEach(id => {
+      const detail = traceDetails[id]!;
+      detail.actions.forEach(action =>
+        expect(action.authorization.policyFindingIds, id).toEqual(THREE_POLICIES)
+      );
+      const result = detail.events.find(event => event.eventId === "ev-6");
+      expect(result?.type, id).toBe("tool_result");
+      if (result?.type !== "tool_result") return;
+      // trace-a8c63e15's ev-6 is the tool gateway's circuit breaker, not a policy
+      // decision, so it carries no policy finding IDs. Left as recorded.
+      expect(result.policyFindingIds, id).toEqual(id === "trace-a8c63e15" ? [] : THREE_POLICIES);
+    });
+  });
+
+  it("names the failed policies in the status note and none of the passed ones", () => {
+    APPROVAL_FLOW.forEach(id => {
+      const detail = traceDetails[id]!;
+      THREE_POLICIES.forEach(policyId => {
+        expect(detail.status.policy.note.includes(policyId), `${id} ${policyId}`).toBe(
+          id === "trace-8f21c9a4"
+        );
+      });
+    });
+  });
+
+  it("resolves every finding and supplier evidence link to an event on the same trace", () => {
+    APPROVAL_FLOW.forEach(id => {
+      const detail = traceDetails[id]!;
+      const ids = new Set(detail.events.map(event => event.eventId));
+      detail.policyFindings.forEach(finding => {
+        finding.evidenceEventIds.forEach(eventId => expect(ids.has(eventId), `${id} ${eventId}`).toBe(true));
+        if (finding.supplierRecordRef) expect(ids.has(finding.supplierRecordRef.eventId)).toBe(true);
+      });
+    });
+  });
+
+  it("labels only trace-8f21c9a4 as a synthetic boundary case", () => {
+    const note = traceDetails["trace-8f21c9a4"]!.scenarioNote;
+    expect(note?.kind).toBe("synthetic_boundary_case");
+    expect(note?.text).toMatch(/normal application stops after the supplier check/);
+    expect(note?.text).toMatch(/does not prove Agent-originated behavior/);
+    expect(traceDetails["trace-9a03e771"]!.scenarioNote).toBeUndefined();
+    expect(traceDetails["trace-a8c63e15"]!.scenarioNote).toBeUndefined();
+  });
+
+  it("does not claim Agent-originated behavior or a settled root cause on the synthetic trace", () => {
+    investigations["trace-8f21c9a4"]!.rca.forEach(cause =>
+      expect(cause.explanation).toMatch(/synthetic boundary case/)
+    );
+    expect(investigations["trace-8f21c9a4"]!.rca.map(cause => cause.causeId)).not.toContain(
+      "policy_configuration"
+    );
+  });
+
+  it("keeps the cancelled-approval link unused on the three traces", () => {
+    APPROVAL_FLOW.forEach(id =>
+      traceDetails[id]!.actions.forEach(action =>
+        expect(action.authorization.approvalRecordRefs).toBeUndefined()
+      )
+    );
+  });
+
+  it("uses the supplier policy ID only where a finding exists for it", () => {
+    expect(SUPPLIER_POLICY_ID).toBe("PROC-SUPPLIER-01");
   });
 });

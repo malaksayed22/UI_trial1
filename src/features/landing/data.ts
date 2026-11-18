@@ -85,9 +85,8 @@ export const evaluatorScores = [
 ] as const;
 
 export const rootCauses = [
-  { rank: 1, cause: "agent_workflow", score: 0.91, text: "Tool proposed while workflow_stage was PRE_APPROVAL.", events: "ev-4 · ev-5" },
-  { rank: 2, cause: "prompt", score: 0.74, text: "prompt-v1.7.2 never instructs the agent to wait for approval.", events: "ev-2 · ev-4" },
-  { rank: 3, cause: "policy_configuration", score: 0.52, text: "Supplier-tier threshold not re-checked after the amount changed.", events: "ev-5" },
+  { rank: 1, cause: "agent_workflow", score: 0.91, text: "Tool proposed while workflow_stage was PRE_APPROVAL (synthetic boundary case; not Agent-originated).", events: "ev-4 · ev-5" },
+  { rank: 2, cause: "prompt", score: 0.74, text: "Not established: the proposal was forced in this synthetic boundary case.", events: "ev-2 · ev-4" },
 ] as const;
 
 export const gateMetrics = [

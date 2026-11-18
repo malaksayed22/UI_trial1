@@ -1,5 +1,6 @@
 import {
   CircleHelp,
+  Database,
   GitCommitHorizontal,
   MessageSquare,
   Search,
@@ -24,6 +25,9 @@ export type EventPresentation = {
   /** Short facts shown under the headline. */
   facts: string[];
 };
+
+/** Supplier fields are the application's own, not canonical contract fields. */
+const APPLICATION_LOCAL_FACT = "application-local, pending Mohab's canonical mapping";
 
 const latencyFact = (latencyMs: number | null) =>
   latencyMs === null ? null : formatDuration(latencyMs);
@@ -114,6 +118,34 @@ export const presentEvent = (event: TraceEvent): EventPresentation => {
         facts: compact([event.tool, latencyFact(event.latencyMs)]),
       };
     }
+    case "supplier_directory_snapshot": {
+      const { lookup } = event;
+      if (lookup.kind === "record") {
+        const { record } = lookup;
+        return {
+          label: "SUPPLIER DIRECTORY SNAPSHOT",
+          tone: "info",
+          icon: Database,
+          headline: `${record.supplierId}: status ${record.status} in record version ${record.recordVersion} (synthetic)`,
+          facts: compact([
+            `source: ${record.source}`,
+            APPLICATION_LOCAL_FACT,
+            latencyFact(event.latencyMs),
+          ]),
+        };
+      }
+      // An unknown status and a failed lookup are never shown as NOT_APPROVED.
+      const failed = lookup.kind === "lookup_failed";
+      return {
+        label: failed ? "SUPPLIER DIRECTORY · LOOKUP FAILED" : "SUPPLIER DIRECTORY · STATUS UNKNOWN",
+        tone: "review",
+        icon: failed ? SearchX : CircleHelp,
+        headline: failed
+          ? `Supplier directory lookup failed for ${lookup.supplierId}: ${lookup.reason}`
+          : `Supplier directory has no known status for ${lookup.supplierId}: ${lookup.reason}`,
+        facts: compact([`source: ${lookup.source}`, APPLICATION_LOCAL_FACT]),
+      };
+    }
     case "final_response":
       return {
         label: "FINAL RESPONSE",
@@ -192,6 +224,34 @@ export const eventFields = (event: TraceEvent): [string, string][] => {
         ["Outcome", event.outcome],
         ["Policy findings", event.policyFindingIds.join(", ") || "None"],
       ];
+    case "supplier_directory_snapshot": {
+      const { lookup } = event;
+      const mapping: [string, string] = ["Field mapping", APPLICATION_LOCAL_FACT];
+      if (lookup.kind === "record") {
+        const { record } = lookup;
+        return [
+          ...common,
+          ["Supplier ID", record.supplierId],
+          ["Supplier status", record.status],
+          ["Record version", `${record.recordVersion} · SYNTHETIC version`],
+          ["Source", record.source],
+          mapping,
+        ];
+      }
+      return [
+        ...common,
+        ["Supplier ID", lookup.supplierId],
+        [
+          "Lookup result",
+          lookup.kind === "lookup_failed"
+            ? "Lookup failed (no status was returned)"
+            : "Status unknown (no status was returned)",
+        ],
+        ["Reason", lookup.reason],
+        ["Source", lookup.source],
+        mapping,
+      ];
+    }
     case "final_response":
       return [...common, ["Flags", event.flags.join(", ") || "None"]];
   }

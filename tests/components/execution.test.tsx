@@ -1,17 +1,18 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { PolicyVerdictTag } from "@/components/ui/policy-verdict-tag";
 import { PolicyFindings } from "@/features/evidence/policy-findings";
+import { ScenarioNote } from "@/features/trace-detail/scenario-note";
 import { ActionLifecycle } from "@/features/execution/action-lifecycle";
 import { ApprovalRecords } from "@/features/execution/approval-records";
 import { StageBoundaries } from "@/features/execution/stage-boundaries";
 import { StateTransitions } from "@/features/execution/state-transitions";
 import { SideEffectView } from "@/features/execution/side-effect";
-import { presentEvent } from "@/features/trace-detail/event-presenter";
+import { eventFields, presentEvent } from "@/features/trace-detail/event-presenter";
 import { ResponseDeliveryPanel } from "@/features/trace-detail/response-delivery";
 import { TraceStatusPanel } from "@/features/trace-detail/trace-status";
 import { traceDetails } from "@/mocks/fixtures";
-import type { ActionRecord, PolicySecurityVerdict, SideEffect } from "@/types";
+import type { ActionRecord, PolicySecurityVerdict, SideEffect, SupplierLookup } from "@/types";
 
 const trace = (id: string) => traceDetails[id]!;
 
@@ -469,49 +470,157 @@ describe("policy gate tile", () => {
   });
 });
 
-describe("supplier record evidence on trace-8f21c9a4", () => {
-  const detail = trace(BYPASS);
+describe("supplier evidence in the findings panel", () => {
+  const renderFindings = (id: string) => {
+    const detail = trace(id);
+    render(<PolicyFindings traceId={id} findings={detail.policyFindings} events={detail.events} />);
+    return screen.getByText("PROC-SUPPLIER-01").closest("li")!;
+  };
 
-  it("shows the supplier record, its version and NOT_APPROVED under PROC-SUPPLIER-01", () => {
-    render(
-      <PolicyFindings
-        traceId={BYPASS}
-        findings={detail.policyFindings}
-        supplierRecords={detail.supplierRecords}
-      />
-    );
-    const supplier = screen.getByText("PROC-SUPPLIER-01").closest("li")!;
-    expect(within(supplier).getByText("SUP-2291")).toBeInTheDocument();
-    expect(within(supplier).getByText("v1")).toBeInTheDocument();
-    expect(within(supplier).getByText("NOT_APPROVED")).toBeInTheDocument();
-    expect(within(supplier).getByText(/status APPROVED/)).toBeInTheDocument();
-    expect(within(supplier).queryByText(/secondary review/)).not.toBeInTheDocument();
+  it("shows the supplier record, version, synthetic label, status and source on all three traces", () => {
+    [
+      [BYPASS, "SUP-2291", "NOT_APPROVED"],
+      [SUCCESS, "SUP-1180", "APPROVED"],
+      [NOT_DISPATCHED, "SUP-2468", "APPROVED"],
+    ].forEach(([id, supplier, status]) => {
+      const item = renderFindings(id!);
+      expect(within(item).getByText(supplier!)).toBeInTheDocument();
+      expect(within(item).getByText("v1")).toBeInTheDocument();
+      expect(within(item).getByText("Synthetic version")).toBeInTheDocument();
+      expect(within(item).getByText(status!)).toBeInTheDocument();
+      expect(within(item).getByText(/Supplier directory \(fixture snapshot\)/)).toBeInTheDocument();
+      expect(within(item).getByText(/Application-local/)).toBeInTheDocument();
+      expect(within(item).getByText("ev-sup-1")).toBeInTheDocument();
+      expect(within(item).queryByText("ev-5")).not.toBeInTheDocument();
+      cleanup();
+    });
   });
 
-  it("shows the secondary-review finding as its own finding, not under PROC-SUPPLIER-01", () => {
-    render(
-      <PolicyFindings
-        traceId={BYPASS}
-        findings={detail.policyFindings}
-        supplierRecords={detail.supplierRecords}
-      />
-    );
-    const tier = screen.getByText(/secondary review for orders above \$25,000/).closest("li")!;
-    expect(within(tier).getByText("supplier_tier_check")).toBeInTheDocument();
-    expect(within(tier).queryByText("PROC-SUPPLIER-01")).not.toBeInTheDocument();
-    expect(within(tier).queryByText("NOT_APPROVED")).not.toBeInTheDocument();
+  it("shows the same rule, wording and critical label for PROC-SUPPLIER-01 on all three traces", () => {
+    const texts = [BYPASS, SUCCESS, NOT_DISPATCHED].map(id => {
+      const item = renderFindings(id);
+      const text = item.textContent ?? "";
+      expect(within(item).getByText("Critical")).toBeInTheDocument();
+      expect(within(item).getByText("supplier_must_be_approved")).toBeInTheDocument();
+      cleanup();
+      return /The supplier on the proposed purchase order[^.]*\./.exec(text)?.[0];
+    });
+    expect(new Set(texts).size).toBe(1);
+    expect(texts[0]).toMatch(/regardless of order value/);
   });
 
-  it("says the record is not included when the view does not load supplier records", () => {
-    render(<PolicyFindings traceId={BYPASS} findings={detail.policyFindings} />);
-    expect(screen.getByText(/record not included in this view/)).toBeInTheDocument();
+  it("shows no tier finding on the policy-blocked trace", () => {
+    const detail = trace(BYPASS);
+    render(<PolicyFindings traceId={BYPASS} findings={detail.policyFindings} events={detail.events} />);
+    expect(screen.queryByText(/secondary review/)).not.toBeInTheDocument();
+    expect(screen.queryByText("supplier_tier_check")).not.toBeInTheDocument();
+    expect(screen.queryByText(/PLACEHOLDER/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/^PROC-/)).toHaveLength(3);
+  });
+
+  const withLookup = (lookup: SupplierLookup) => {
+    const detail = structuredClone(trace(BYPASS));
+    const snapshot = detail.events.find(event => event.eventId === "ev-sup-1")!;
+    if (snapshot.type === "supplier_directory_snapshot") snapshot.lookup = lookup;
+    return detail;
+  };
+
+  it("never shows an unknown status as NOT_APPROVED", () => {
+    const detail = withLookup({ kind: "status_unknown", supplierId: "SUP-2291", source: "test", reason: "directory has no status" });
+    render(<PolicyFindings traceId={BYPASS} findings={detail.policyFindings} events={detail.events} />);
+    expect(screen.getByText(/Supplier status unknown for/)).toBeInTheDocument();
+    expect(screen.queryByText("NOT_APPROVED")).not.toBeInTheDocument();
+    expect(screen.queryByText("APPROVED")).not.toBeInTheDocument();
+  });
+
+  it("never shows a failed lookup as NOT_APPROVED", () => {
+    const detail = withLookup({ kind: "lookup_failed", supplierId: "SUP-2291", source: "test", reason: "timed out" });
+    render(<PolicyFindings traceId={BYPASS} findings={detail.policyFindings} events={detail.events} />);
+    expect(screen.getByText(/Supplier directory lookup failed for/)).toBeInTheDocument();
     expect(screen.queryByText("NOT_APPROVED")).not.toBeInTheDocument();
   });
 
-  it("gives the supplier reason in the Policy gate tile", () => {
+  it("says no supplier evidence was recorded when the reference or the event is missing", () => {
+    const noRef = structuredClone(trace(BYPASS));
+    delete noRef.policyFindings.find(finding => finding.policyId === "PROC-SUPPLIER-01")!.supplierRecordRef;
+    const { unmount } = render(<PolicyFindings traceId={BYPASS} findings={noRef.policyFindings} events={noRef.events} />);
+    expect(screen.getByText(/No supplier evidence recorded for this finding/)).toBeInTheDocument();
+    unmount();
+    const noEvent = trace(BYPASS);
+    render(
+      <PolicyFindings
+        traceId={BYPASS}
+        findings={noEvent.policyFindings}
+        events={noEvent.events.filter(event => event.eventId !== "ev-sup-1")}
+      />
+    );
+    expect(screen.getByText(/No supplier evidence recorded: event/)).toBeInTheDocument();
+    expect(screen.queryByText("NOT_APPROVED")).not.toBeInTheDocument();
+  });
+
+  it("says a proposal event cannot show the supplier status", () => {
+    const detail = structuredClone(trace(BYPASS));
+    detail.policyFindings.find(finding => finding.policyId === "PROC-SUPPLIER-01")!.supplierRecordRef!.eventId = "ev-5";
+    render(<PolicyFindings traceId={BYPASS} findings={detail.policyFindings} events={detail.events} />);
+    expect(screen.getByText(/is not a supplier\s+directory snapshot/)).toBeInTheDocument();
+    expect(screen.queryByText("NOT_APPROVED")).not.toBeInTheDocument();
+  });
+
+  it("shows a mismatched record instead of the status", () => {
+    const detail = structuredClone(trace(BYPASS));
+    detail.policyFindings.find(finding => finding.policyId === "PROC-SUPPLIER-01")!.supplierRecordRef!.recordVersion = "v9";
+    render(<PolicyFindings traceId={BYPASS} findings={detail.policyFindings} events={detail.events} />);
+    expect(screen.getByText(/Record mismatch/)).toBeInTheDocument();
+    expect(screen.queryByText("NOT_APPROVED")).not.toBeInTheDocument();
+  });
+
+  it("gives the supplier reason and the synthetic version in the Policy gate tile", () => {
+    const detail = trace(BYPASS);
     render(<TraceStatusPanel status={detail.status} decision={detail.summary.decision} />);
-    expect(screen.getByText(/supplier record for SUP-2291 \(version v1\) has status NOT_APPROVED/)).toBeInTheDocument();
+    expect(screen.getByText(/supplier record for SUP-2291 \(synthetic version v1\) has status NOT_APPROVED/)).toBeInTheDocument();
     expect(screen.getByText("MANDATORY_POLICY_FAILED")).toBeInTheDocument();
+  });
+});
+
+describe("supplier directory snapshot event", () => {
+  const snapshot = (id: string) => {
+    const event = trace(id).events.find(item => item.eventId === "ev-sup-1")!;
+    if (event.type !== "supplier_directory_snapshot") throw new Error("not a snapshot");
+    return event;
+  };
+
+  it("shows supplier, status, synthetic version, source and the application-local label", () => {
+    const view = presentEvent(snapshot(BYPASS));
+    expect(view.label).toBe("SUPPLIER DIRECTORY SNAPSHOT");
+    expect(view.headline).toBe("SUP-2291: status NOT_APPROVED in record version v1 (synthetic)");
+    expect(view.facts.join(" ")).toMatch(/Supplier directory \(fixture snapshot\)/);
+    expect(view.facts.join(" ")).toMatch(/application-local, pending Mohab's canonical mapping/);
+    const fields = Object.fromEntries(eventFields(snapshot(BYPASS)));
+    expect(fields["Supplier ID"]).toBe("SUP-2291");
+    expect(fields["Supplier status"]).toBe("NOT_APPROVED");
+    expect(fields["Record version"]).toBe("v1 · SYNTHETIC version");
+    expect(fields["Source"]).toBe("Supplier directory (fixture snapshot)");
+  });
+
+  it("presents an unknown status and a failed lookup as neither NOT_APPROVED nor a failure by status", () => {
+    (["status_unknown", "lookup_failed"] as const).forEach(kind => {
+      const event = { ...snapshot(BYPASS), lookup: { kind, supplierId: "SUP-2291", source: "test", reason: "no answer" } };
+      const view = presentEvent(event);
+      const text = [view.label, view.headline, ...view.facts, ...eventFields(event).flat()].join(" ");
+      expect(text).not.toMatch(/NOT_APPROVED/);
+      expect(view.tone).toBe("review");
+      expect(text).toMatch(kind === "lookup_failed" ? /lookup failed/i : /unknown/i);
+    });
+  });
+});
+
+describe("synthetic boundary case note", () => {
+  it("states the normal application stops after the supplier check and that nothing is proved", () => {
+    render(<ScenarioNote note={trace(BYPASS).scenarioNote!} />);
+    const note = screen.getByRole("note");
+    expect(within(note).getByText("Synthetic boundary case")).toBeInTheDocument();
+    expect(note.textContent).toMatch(/normal application stops after the supplier check/);
+    expect(note.textContent).toMatch(/does not prove Agent-originated behavior or a root cause/);
   });
 });
 

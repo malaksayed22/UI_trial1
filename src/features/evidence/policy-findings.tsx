@@ -3,7 +3,7 @@ import { EvidenceLinks } from "@/components/ui/evidence-link";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { Tag, type TagTone } from "@/components/ui/tag";
 import { criticalityText } from "@/lib/labels";
-import type { Criticality, PolicyFinding, SupplierRecord } from "@/types";
+import type { Criticality, PolicyFinding, TraceEvent } from "@/types";
 
 const criticalityTone: Record<Criticality, TagTone> = {
   critical: "block",
@@ -14,28 +14,110 @@ const criticalityTone: Record<Criticality, TagTone> = {
 
 type SupplierRecordEvidenceProps = {
   reference: NonNullable<PolicyFinding["supplierRecordRef"]>;
-  records: SupplierRecord[];
+  /** The trace's events. Omit where they are not loaded. */
+  events?: TraceEvent[];
 };
 
-/** The supplier record, and version, a finding relied on, with the status it holds. */
-const SupplierRecordEvidence = ({ reference, records }: SupplierRecordEvidenceProps) => {
-  const record = records.find(
-    item =>
-      item.supplierId === reference.supplierId && item.recordVersion === reference.recordVersion
-  );
+/** The policy that checks the matching supplier record. */
+const SUPPLIER_POLICY_ID = "PROC-SUPPLIER-01";
+
+const evidenceLine = "mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted";
+
+const ApplicationLocalBadge = () => (
+  <span
+    className="rounded border border-line-strong px-1 py-0.5 text-[10px] uppercase tracking-wider text-faint"
+    title="These supplier fields are the application's own, pending Mohab's canonical mapping."
+  >
+    Application-local · pending Mohab&apos;s mapping
+  </span>
+);
+
+/**
+ * The supplier record a finding relied on. The record is read from the supplier
+ * directory snapshot event the finding cites. A proposal event, a missing event,
+ * an unknown status and a failed lookup each get their own wording, and none of
+ * them is ever shown as NOT_APPROVED.
+ */
+const SupplierRecordEvidence = ({ reference, events }: SupplierRecordEvidenceProps) => {
+  const event = events?.find(item => item.eventId === reference.eventId);
+
+  if (!events) {
+    return (
+      <p className={evidenceLine}>
+        Cites supplier directory event <span className="font-mono text-ink">{reference.eventId}</span>
+        . Open Trace Detail to see the record.
+      </p>
+    );
+  }
+  if (!event) {
+    return (
+      <p className={evidenceLine}>
+        No supplier evidence recorded: event{" "}
+        <span className="font-mono text-ink">{reference.eventId}</span> is not in this trace.
+      </p>
+    );
+  }
+  if (event.type !== "supplier_directory_snapshot") {
+    return (
+      <p className={evidenceLine}>
+        Event <span className="font-mono text-ink">{reference.eventId}</span> is not a supplier
+        directory snapshot, so it cannot show the supplier status.
+      </p>
+    );
+  }
+
+  const { lookup } = event;
+  if (lookup.kind === "status_unknown") {
+    return (
+      <p className={evidenceLine}>
+        <span>Supplier status unknown for</span>
+        <span className="font-mono text-ink">{lookup.supplierId}</span>
+        <span>({lookup.reason})</span>
+        <ApplicationLocalBadge />
+      </p>
+    );
+  }
+  if (lookup.kind === "lookup_failed") {
+    return (
+      <p className={evidenceLine}>
+        <span>Supplier directory lookup failed for</span>
+        <span className="font-mono text-ink">{lookup.supplierId}</span>
+        <span>({lookup.reason})</span>
+        <ApplicationLocalBadge />
+      </p>
+    );
+  }
+
+  const { record } = lookup;
+  const matches =
+    record.supplierId === reference.supplierId && record.recordVersion === reference.recordVersion;
+  if (!matches) {
+    return (
+      <p className={evidenceLine}>
+        Record mismatch: the finding cites{" "}
+        <span className="font-mono text-ink">
+          {reference.supplierId} {reference.recordVersion}
+        </span>{" "}
+        but event <span className="font-mono text-ink">{reference.eventId}</span> holds{" "}
+        <span className="font-mono text-ink">
+          {record.supplierId} {record.recordVersion}
+        </span>
+        .
+      </p>
+    );
+  }
   return (
-    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+    <p className={evidenceLine}>
       <span>Supplier record</span>
-      <span className="font-mono text-ink">{reference.supplierId}</span>
+      <span className="font-mono text-ink">{record.supplierId}</span>
       <span>version</span>
-      <span className="font-mono text-ink">{reference.recordVersion}</span>
-      {record ? (
-        <Tag tone="neutral" className="font-mono">
-          {record.status}
-        </Tag>
-      ) : (
-        <span>(record not included in this view)</span>
-      )}
+      <span className="font-mono text-ink">{record.recordVersion}</span>
+      <Tag tone="neutral">Synthetic version</Tag>
+      <Tag tone="neutral" className="font-mono">
+        {record.status}
+      </Tag>
+      <span>from {record.source}</span>
+      <ApplicationLocalBadge />
     </p>
   );
 };
@@ -43,8 +125,8 @@ const SupplierRecordEvidence = ({ reference, records }: SupplierRecordEvidencePr
 type PolicyFindingsProps = {
   traceId: string;
   findings: PolicyFinding[];
-  /** Records the findings may cite. Omit where they are not loaded. */
-  supplierRecords?: SupplierRecord[];
+  /** The trace's events, so a supplier finding can show the record it cites. */
+  events?: TraceEvent[];
   title?: string;
   subtitle?: string;
   headingId?: string;
@@ -53,7 +135,7 @@ type PolicyFindingsProps = {
 export const PolicyFindings = ({
   traceId,
   findings,
-  supplierRecords = [],
+  events,
   title = "Policy findings",
   subtitle = "Deterministic procurement policy checks",
   headingId = "policy-findings",
@@ -92,11 +174,12 @@ export const PolicyFindings = ({
               </div>
               <p className="mt-2 font-mono text-xs text-ink">{finding.rule}</p>
               <p className="mt-1 text-sm text-muted">{finding.description}</p>
-              {finding.supplierRecordRef && (
-                <SupplierRecordEvidence
-                  reference={finding.supplierRecordRef}
-                  records={supplierRecords}
-                />
+              {finding.supplierRecordRef ? (
+                <SupplierRecordEvidence reference={finding.supplierRecordRef} events={events} />
+              ) : (
+                finding.policyId === SUPPLIER_POLICY_ID && (
+                  <p className={evidenceLine}>No supplier evidence recorded for this finding.</p>
+                )
               )}
               <div className="mt-2">
                 <EvidenceLinks

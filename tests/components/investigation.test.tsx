@@ -15,10 +15,10 @@ describe("RcaRanking", () => {
   it("renders the API order and evidence scores without re-ranking", () => {
     render(<RcaRanking traceId={investigation.traceId} causes={investigation.rca} />);
     const items = screen.getAllByRole("listitem");
-    expect(items).toHaveLength(3);
+    expect(items).toHaveLength(2);
     expect(within(items[0]!).getByText("Agent workflow")).toBeInTheDocument();
     expect(within(items[0]!).getByText("0.91")).toBeInTheDocument();
-    expect(within(items[2]!).getByText("0.52")).toBeInTheDocument();
+    expect(within(items[1]!).getByText("0.74")).toBeInTheDocument();
   });
 
   it("states that scores are evidence scores, not probabilities", () => {

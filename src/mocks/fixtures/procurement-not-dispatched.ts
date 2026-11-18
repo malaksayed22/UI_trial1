@@ -6,6 +6,10 @@ import {
   POLICY_VERSION,
   PROCUREMENT_VERSIONS,
   scored,
+  SUPPLIER_RULE,
+  SUPPLIER_RULE_DESCRIPTION,
+  SUPPLIER_SOURCE,
+  SYNTHETIC_RECORD_VERSION,
 } from "./shared";
 
 /**
@@ -53,11 +57,13 @@ const policyFindings: TraceDetail["policyFindings"] = [
   {
     policyId: "PROC-SUPPLIER-01",
     policyVersion: POLICY_VERSION,
-    rule: "supplier_tier_check",
-    description: "SUP-2468 is an approved supplier at this order value.",
+    rule: SUPPLIER_RULE,
+    description: SUPPLIER_RULE_DESCRIPTION,
     outcome: "pass",
-    criticality: "high",
-    evidenceEventIds: ["ev-5"],
+    criticality: "critical",
+    evidenceEventIds: ["ev-sup-1"],
+    // Cites the supplier directory snapshot event, not the PO proposal.
+    supplierRecordRef: { supplierId: "SUP-2468", recordVersion: SYNTHETIC_RECORD_VERSION, eventId: "ev-sup-1" },
   },
 ];
 
@@ -88,7 +94,7 @@ const evaluators: TraceDetail["evaluators"] = [
     version: "v1.0.0",
     outcome: scored(1),
     finding: "3 of 3 procurement policies passed.",
-    evidenceEventIds: ["ev-5", "ev-6"],
+    evidenceEventIds: ["ev-sup-1", "ev-5", "ev-6"],
   },
   {
     evaluatorId: "eval-semantic-completion",
@@ -155,10 +161,32 @@ export const procurementNotDispatchedDetail: TraceDetail = {
       summary: "Drafted a workflow plan citing POL-114.",
       tokens: { input: 206, output: 97 },
     },
+    // FIXTURE EVIDENCE, application-local and pending Mohab's canonical mapping.
+    // A supplier directory snapshot read BEFORE the policy check. The record
+    // version is SYNTHETIC. This, not the PO proposal, is what the PROC-SUPPLIER-01
+    // finding cites.
     {
-      eventId: "ev-3",
+      eventId: "ev-sup-1",
       parentId: "ev-2",
       sequence: 3,
+      type: "supplier_directory_snapshot",
+      timestamp: "2026-10-01T10:31:12.715Z",
+      latencyMs: null,
+      lookup: {
+        kind: "record",
+        record: {
+          supplierId: "SUP-2468",
+          status: "APPROVED",
+          recordVersion: SYNTHETIC_RECORD_VERSION,
+          recordVersionSynthetic: true,
+          source: SUPPLIER_SOURCE,
+        },
+      },
+    },
+    {
+      eventId: "ev-3",
+      parentId: "ev-sup-1",
+      sequence: 4,
       type: "agent_state",
       timestamp: "2026-10-01T10:31:12.730Z",
       latencyMs: null,
@@ -169,7 +197,7 @@ export const procurementNotDispatchedDetail: TraceDetail = {
     {
       eventId: "ev-4",
       parentId: "ev-3",
-      sequence: 4,
+      sequence: 5,
       type: "agent_state",
       timestamp: "2026-10-01T10:31:12.980Z",
       latencyMs: null,
@@ -180,7 +208,7 @@ export const procurementNotDispatchedDetail: TraceDetail = {
     {
       eventId: "ev-5",
       parentId: "ev-4",
-      sequence: 5,
+      sequence: 6,
       type: "tool_call",
       stage: "proposed",
       actionId: "act-1",
@@ -192,7 +220,7 @@ export const procurementNotDispatchedDetail: TraceDetail = {
     {
       eventId: "ev-6",
       parentId: "ev-5",
-      sequence: 6,
+      sequence: 7,
       type: "tool_result",
       actionId: "act-1",
       timestamp: "2026-10-01T10:31:13.101Z",
@@ -206,7 +234,7 @@ export const procurementNotDispatchedDetail: TraceDetail = {
     {
       eventId: "ev-7",
       parentId: "ev-6",
-      sequence: 7,
+      sequence: 8,
       type: "final_response",
       timestamp: "2026-10-01T10:31:13.198Z",
       latencyMs: null,

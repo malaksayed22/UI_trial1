@@ -11,6 +11,7 @@ import { PolicyFindings } from "@/features/evidence/policy-findings";
 import { SecurityFindings } from "@/features/evidence/security-findings";
 import { TraceGraph } from "@/features/trace-graph/trace-graph";
 import { BackToExplorer } from "@/features/trace-detail/back-to-explorer";
+import { ScenarioNote } from "@/features/trace-detail/scenario-note";
 import { ResponseDeliveryPanel } from "@/features/trace-detail/response-delivery";
 import { TraceHeader } from "@/features/trace-detail/trace-header";
 import { TraceStatusPanel } from "@/features/trace-detail/trace-status";
@@ -53,6 +54,7 @@ const TraceDetailPage = async ({ params }: TraceDetailPageProps) => {
       <TraceTabs traceId={traceId} current="detail" />
 
       <div className="space-y-4">
+        {trace.scenarioNote && <ScenarioNote note={trace.scenarioNote} />}
         <TraceStatusPanel status={trace.status} decision={trace.summary.decision} />
 
         {trace.actions.length > 0 && (
@@ -81,7 +83,7 @@ const TraceDetailPage = async ({ params }: TraceDetailPageProps) => {
           <PolicyFindings
             traceId={traceId}
             findings={trace.policyFindings}
-            supplierRecords={trace.supplierRecords}
+            events={trace.events}
           />
           <SecurityFindings traceId={traceId} findings={trace.securityFindings} />
         </div>

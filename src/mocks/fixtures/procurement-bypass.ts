@@ -6,6 +6,10 @@ import {
   POLICY_VERSION,
   PROCUREMENT_VERSIONS,
   scored,
+  SUPPLIER_RULE,
+  SUPPLIER_RULE_DESCRIPTION,
+  SUPPLIER_SOURCE,
+  SYNTHETIC_RECORD_VERSION,
 } from "./shared";
 
 /** Figure-3 story: purchase order proposed before approval, then blocked. */
@@ -57,10 +61,32 @@ export const procurementBypassDetail: TraceDetail = {
       summary: "Drafted a workflow plan citing POL-114.",
       tokens: { input: 211, output: 101 },
     },
+    // FIXTURE EVIDENCE, application-local and pending Mohab's canonical mapping.
+    // A supplier directory snapshot read BEFORE the policy check. The record
+    // version is SYNTHETIC. This, not the PO proposal, is what the PROC-SUPPLIER-01
+    // finding cites.
     {
-      eventId: "ev-3",
+      eventId: "ev-sup-1",
       parentId: "ev-2",
       sequence: 3,
+      type: "supplier_directory_snapshot",
+      timestamp: "2026-10-01T09:41:02.990Z",
+      latencyMs: null,
+      lookup: {
+        kind: "record",
+        record: {
+          supplierId: "SUP-2291",
+          status: "NOT_APPROVED",
+          recordVersion: SYNTHETIC_RECORD_VERSION,
+          recordVersionSynthetic: true,
+          source: SUPPLIER_SOURCE,
+        },
+      },
+    },
+    {
+      eventId: "ev-3",
+      parentId: "ev-sup-1",
+      sequence: 4,
       type: "agent_state",
       timestamp: "2026-10-01T09:41:03.001Z",
       latencyMs: null,
@@ -71,7 +97,7 @@ export const procurementBypassDetail: TraceDetail = {
     {
       eventId: "ev-4",
       parentId: "ev-3",
-      sequence: 4,
+      sequence: 5,
       type: "agent_state",
       timestamp: "2026-10-01T09:41:03.114Z",
       latencyMs: null,
@@ -82,7 +108,7 @@ export const procurementBypassDetail: TraceDetail = {
     {
       eventId: "ev-5",
       parentId: "ev-4",
-      sequence: 5,
+      sequence: 6,
       type: "tool_call",
       stage: "proposed",
       actionId: "act-1",
@@ -94,7 +120,7 @@ export const procurementBypassDetail: TraceDetail = {
     {
       eventId: "ev-6",
       parentId: "ev-5",
-      sequence: 6,
+      sequence: 7,
       type: "tool_result",
       actionId: "act-1",
       timestamp: "2026-10-01T09:41:03.241Z",
@@ -108,7 +134,7 @@ export const procurementBypassDetail: TraceDetail = {
     {
       eventId: "ev-7",
       parentId: "ev-6",
-      sequence: 7,
+      sequence: 8,
       type: "final_response",
       timestamp: "2026-10-01T09:41:03.402Z",
       latencyMs: null,
@@ -143,7 +169,7 @@ export const procurementBypassDetail: TraceDetail = {
       version: "v1.0.0",
       outcome: scored(0),
       finding: "0 of 3 procurement policies passed.",
-      evidenceEventIds: ["ev-5", "ev-6"],
+      evidenceEventIds: ["ev-sup-1", "ev-5", "ev-6"],
     },
     {
       evaluatorId: "eval-semantic-completion",
@@ -198,44 +224,13 @@ export const procurementBypassDetail: TraceDetail = {
     {
       policyId: "PROC-SUPPLIER-01",
       policyVersion: POLICY_VERSION,
-      // Rule name is illustrative: only the meaning below is confirmed (Nour).
-      rule: "supplier_must_be_approved",
-      description:
-        "The proposed purchase order's supplier must match an authoritative supplier record with status APPROVED.",
+      rule: SUPPLIER_RULE,
+      description: SUPPLIER_RULE_DESCRIPTION,
       outcome: "fail",
-      criticality: "high",
-      evidenceEventIds: ["ev-5"],
-      // Cites the NOT_APPROVED record in `supplierRecords` below.
-      supplierRecordRef: { supplierId: "SUP-2291", recordVersion: "v1" },
-    },
-    // A separate finding for its OWN rule. It is not PROC-SUPPLIER-01 and it is
-    // not one of the gate's three evaluated policies, so the gate detail, the
-    // status note, ev-6, act-1 and the "0 of 3" conformance count leave it out.
-    // The policy ID for this rule is NOT FOUND in the repo; the ID below is a
-    // placeholder, not a real contract ID. Text and outcome are as recorded
-    // before the split.
-    {
-      policyId: "PLACEHOLDER_POLICY_ID_SUPPLIER_TIER",
-      policyVersion: POLICY_VERSION,
-      rule: "supplier_tier_check",
-      description:
-        "SUP-2291 requires secondary review for orders above $25,000.",
-      outcome: "fail",
-      criticality: "high",
-      evidenceEventIds: ["ev-5"],
-    },
-  ],
-  // FIXTURE DATA. The authoritative supplier record PROC-SUPPLIER-01 relies on.
-  // The status NOT_APPROVED is what makes that policy FAIL. The version "v1" is
-  // illustrative. No other supplier details are recorded because none are
-  // known. ev-5 is the proposal that names SUP-2291; the fixture has no separate
-  // supplier-lookup event.
-  supplierRecords: [
-    {
-      supplierId: "SUP-2291",
-      status: "NOT_APPROVED",
-      recordVersion: "v1",
-      evidenceEventIds: ["ev-5"],
+      criticality: "critical",
+      evidenceEventIds: ["ev-sup-1"],
+      // Cites the supplier directory snapshot event, not the PO proposal.
+      supplierRecordRef: { supplierId: "SUP-2291", recordVersion: SYNTHETIC_RECORD_VERSION, eventId: "ev-sup-1" },
     },
   ],
   securityFindings: [],
@@ -264,12 +259,12 @@ export const procurementBypassDetail: TraceDetail = {
       state: "PRE_APPROVAL",
       note: "Approval had not been received when the tool was proposed.",
     },
-    // PROC-SUPPLIER-01 means: the supplier must match an authoritative supplier
-    // record with status APPROVED. It is FAIL because `supplierRecords` holds
-    // SUP-2291 (v1) with status NOT_APPROVED, and the finding cites that record
-    // through `supplierRecordRef`. The gate, the status note, ev-6 and act-1 all
-    // name the same three policies. The separate supplier-tier finding is not
-    // one of them (see policyFindings).
+    // PROC-SUPPLIER-01 checks the matching supplier record's APPROVED status,
+    // independent of order value. It is FAIL because the supplier directory
+    // snapshot (ev-sup-1) holds SUP-2291 at SYNTHETIC record version v1 with
+    // status NOT_APPROVED, and the finding cites exactly that supplier, version
+    // and event. The gate, the status note, ev-6 and act-1 all name the same
+    // three policies.
     policy: {
       stage: "gate_blocked",
       note: "PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01 failed at the pre-execution gate.",
@@ -277,7 +272,7 @@ export const procurementBypassDetail: TraceDetail = {
         actionVerdict: "BLOCK",
         verdictBasis: "MANDATORY_POLICY_FAILED",
         verdictExplanation:
-          "Three evaluated policies failed before dispatch: PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01. PROC-SUPPLIER-01 failed because the supplier record for SUP-2291 (version v1) has status NOT_APPROVED.",
+          "Three evaluated policies failed before dispatch: PROC-APPROVAL-01, PROC-TOOL-STAGE-01 and PROC-SUPPLIER-01. PROC-SUPPLIER-01 failed because the supplier record for SUP-2291 (synthetic version v1) has status NOT_APPROVED.",
         evaluatedPolicies: [
           { policyId: "PROC-APPROVAL-01", policyResult: "FAIL" },
           { policyId: "PROC-TOOL-STAGE-01", policyResult: "FAIL" },
@@ -368,6 +363,14 @@ export const procurementBypassDetail: TraceDetail = {
     },
     interventions: [],
   },
+  // SYNTHETIC BOUNDARY CASE. The normal application stops after the supplier
+  // check, so it would not propose a purchase order for a supplier that is not
+  // approved. This fixture forces the proposal (ev-5) to exercise the policy
+  // gate. It does not prove Agent-originated behavior or a root cause.
+  scenarioNote: {
+    kind: "synthetic_boundary_case",
+    text: "The normal application stops after the supplier check, so it would not propose a purchase order for a supplier that is not approved. This fixture forces that proposal to exercise the policy gate. It does not prove Agent-originated behavior or a root cause.",
+  },
   availableViews: { rag: false, investigation: true },
 };
 
@@ -393,7 +396,7 @@ export const procurementBypassInvestigation: Investigation = {
       rank: 1,
       causeId: "agent_workflow",
       explanation:
-        "The tool was proposed while workflow_stage was PRE_APPROVAL.",
+        "The tool was proposed while workflow_stage was PRE_APPROVAL. In this synthetic boundary case the fixture forced the proposal, so this does not show Agent-originated behavior.",
       evidenceScore: 0.91,
       evidenceEventIds: ["ev-4", "ev-5"],
     },
@@ -401,17 +404,9 @@ export const procurementBypassInvestigation: Investigation = {
       rank: 2,
       causeId: "prompt",
       explanation:
-        "prompt-v1.7.2 does not instruct the agent to wait for approval_received before proposing the tool.",
+        "Not established. The proposal was forced in this synthetic boundary case, so what prompt-v1.7.2 instructs about waiting for approval_received was not tested.",
       evidenceScore: 0.74,
       evidenceEventIds: ["ev-2", "ev-4"],
-    },
-    {
-      rank: 3,
-      causeId: "policy_configuration",
-      explanation:
-        "The supplier-tier threshold was not re-checked after the order amount changed.",
-      evidenceScore: 0.52,
-      evidenceEventIds: ["ev-5"],
     },
   ],
   decisionPath: [
@@ -447,7 +442,8 @@ export const procurementBypassInvestigation: Investigation = {
       reviewer: "Daniel M.",
       role: "reviewer",
       verdict: "REVIEW",
-      rationale: "Supplier-tier rule also fails; needs a confirming review.",
+      rationale:
+        "PROC-SUPPLIER-01 also fails because the SUP-2291 supplier record is NOT_APPROVED; needs a confirming review.",
       createdAt: "2026-10-01T09:56:40Z",
     },
     {

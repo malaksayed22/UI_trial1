@@ -7,7 +7,7 @@ import type {
   StateTransition,
   TraceStatus,
 } from "./execution";
-import type { PolicyFinding, SecurityFinding, SupplierRecord } from "./governance";
+import type { PolicyFinding, SecurityFinding, SupplierLookup } from "./governance";
 
 /**
  * Failure labels from taxonomy v1, as used by the UI. The taxonomy is owned
@@ -111,6 +111,16 @@ export type ToolResultEvent = EventBase & {
   policyFindingIds: string[];
 };
 
+/**
+ * APPLICATION-LOCAL, pending Mohab's canonical mapping. A trusted snapshot of
+ * the supplier directory, read before the policy check. It is the evidence a
+ * supplier finding cites; a tool proposal is not.
+ */
+export type SupplierDirectoryEvent = EventBase & {
+  type: "supplier_directory_snapshot";
+  lookup: SupplierLookup;
+};
+
 export type FinalResponseEvent = EventBase & {
   type: "final_response";
   text: string;
@@ -123,6 +133,7 @@ export type TraceEvent =
   | AgentStateEvent
   | ToolCallEvent
   | ToolResultEvent
+  | SupplierDirectoryEvent
   | FinalResponseEvent;
 
 export type TraceEventType = TraceEvent["type"];
@@ -168,6 +179,12 @@ export type TraceGraph = {
   edges: GraphEdge[];
 };
 
+/** A fixture that forces a path the normal application would not take. */
+export type SyntheticBoundaryNote = {
+  kind: "synthetic_boundary_case";
+  text: string;
+};
+
 export type TraceDetail = {
   summary: TraceSummary;
   versions: VersionSet;
@@ -180,8 +197,11 @@ export type TraceDetail = {
   status: TraceStatus;
   actions: ActionRecord[];
   approvals: ApprovalRecord[];
-  /** Supplier records the policy findings relied on. Absent when none were recorded. */
-  supplierRecords?: SupplierRecord[];
+  /**
+   * APPLICATION-LOCAL. Labels a fixture that forces a path the normal
+   * application would not take. Absent for ordinary traces.
+   */
+  scenarioNote?: SyntheticBoundaryNote;
   /** TRD-22. Absent when the trace does not carry transition data. */
   stateTransitions?: StateTransition[];
   delivery: ResponseDelivery;

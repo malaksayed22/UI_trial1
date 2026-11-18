@@ -62,3 +62,18 @@ export const spanBetween = (text: string, from: string, to: string): TextSpan =>
   const start = spanOf(text, from).start;
   return { start, end: spanOf(text, to).end };
 };
+
+/**
+ * PROC-SUPPLIER-01 checks the matching supplier record's APPROVED status,
+ * independent of order value. Every trace uses this wording. The rule name is
+ * illustrative: only the meaning is confirmed (Nour).
+ */
+export const SUPPLIER_RULE = "supplier_must_be_approved";
+export const SUPPLIER_RULE_DESCRIPTION =
+  "The supplier on the proposed purchase order must match a supplier record with status APPROVED, regardless of order value.";
+
+/** FIXTURE value, application-local, pending Mohab's canonical mapping. */
+export const SUPPLIER_SOURCE = "Supplier directory (fixture snapshot)";
+
+/** SYNTHETIC record version. Not issued by a real supplier directory. */
+export const SYNTHETIC_RECORD_VERSION = "v1";

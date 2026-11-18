@@ -30,7 +30,7 @@ const kindTone: Record<SpanTone, string> = {
 const findings = [
   { id: "PROC-APPROVAL-01", rule: "approval_required_before_po", level: "critical" },
   { id: "PROC-TOOL-STAGE-01", rule: "tool_requires_approved_stage", level: "critical" },
-  { id: "PROC-SUPPLIER-01", rule: "supplier_tier_check", level: "high" },
+  { id: "PROC-SUPPLIER-01", rule: "supplier_must_be_approved", level: "critical" },
 ] as const;
 
 const percentOf = (ms: number) => (ms / TRACE_DURATION_MS) * 100;

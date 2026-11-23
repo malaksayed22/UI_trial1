@@ -6,6 +6,8 @@
 
 export const TRACE_ID = "trace-8f21c9a4";
 export const TRACE_DURATION_MS = 1288;
+/** Timeline events on trace-8f21c9a4, supplier directory snapshot included. */
+export const TRACE_EVENT_COUNT = 8;
 
 export type SpanTone = "info" | "model" | "review" | "block" | "muted";
 
@@ -35,7 +37,7 @@ export const pipelineSteps = [
     title: "Trace",
     summary: "Every retrieval, model call and tool proposal, in order.",
     headline: "The path behind the answer",
-    caption: "Seven ordered events reconstructed from one request. The approval node is missing, and that absence is the finding.",
+    caption: "Eight ordered events reconstructed from one request. The approval node is missing, and that absence is the finding.",
   },
   {
     key: "evidence",
@@ -49,7 +51,7 @@ export const pipelineSteps = [
     key: "cause",
     number: "03",
     title: "Root cause",
-    summary: "A ranked top‑3 with the events that justify each cause.",
+    summary: "Root-cause candidates and supporting events when assessed.",
     headline: "A cause only when evidence supports one",
     caption: "A ranked cause cites the exact events it was derived from, so a reviewer can disagree with evidence. This trace is a synthetic boundary case, so no cause is ranked.",
   },
@@ -111,7 +113,7 @@ export const trend = {
 export const rigorStats = [
   { value: 3038, decimals: 0, suffix: "", label: "traces evaluated", note: "30-day window" },
   { value: 8, decimals: 0, suffix: "", label: "failure classes", note: "labelled and classified" },
-  { value: 3, decimals: 0, suffix: "", label: "ranked root causes", note: "each with cited events" },
+  { value: 3, decimals: 0, suffix: "", label: "Up to 3 RCA candidates when assessed", note: "each with cited events" },
   { value: 92.8, decimals: 1, suffix: "%", label: "traces passing", note: "2,820 of 3,038" },
 ] as const;
 

@@ -105,7 +105,7 @@ SCENE 1 — HERO / VISIBLE
 - Primary CTA: “Explore the Signal Room ↗” → /overview. Secondary CTA: “See how it works →” → #workflow.
 - Proof row: 3,038 traces evaluated; 86.4% reliability score; 7 investigation screens.
 - Console mockup title bar: three window dots, “signal-room / live-trace / 8f21c9a4,” green LIVE.
-- Console case: eyebrow “ACTIVE INVESTIGATION / PROCUREMENT AGENT,” title “Approval-bypass attempt,” BLOCK pill, metadata “app-v2.4.1,” “7 ordered events,” “1.3s duration.”
+- Console case: eyebrow “ACTIVE INVESTIGATION / PROCUREMENT AGENT,” title “Approval-bypass attempt,” BLOCK pill, metadata “app-v2.4.1,” “8 ordered events,” “1.3s duration.”
 - Timeline cards: RETRIEVAL / POL-114 / score 0.94 / ✓; MODEL CALL / Plan drafted / 312 tokens · 866ms / ✓; AGENT STATE / PRE_APPROVAL / approval_received = false / !; POLICY ENGINE / Action blocked / approval_required_before_po / ×.
 - Right-side gauge: “DECISION SIGNAL,” 0.93 confidence, BLOCK, critical finding.
 - Console footer: “trace integrity verified” and “evidence graph synced · 2s ago.” Caption: “TRUSTOPS TRACE VIEW” and “01 / 07 SCREENS.”
@@ -116,7 +116,7 @@ SCENE 2 — SYSTEM / EVIDENCE
 - Heading: “AI is only as trustworthy as its evidence.” Apply the gradient to “evidence.”
 - Copy: “Final answers are not enough. TrustOps reconstructs the path behind every response, tool call, retrieval, and policy decision.”
 - Three large interactive cards. Default selected card is Evidence; selecting or hovering a card adds a brighter border and lift.
-  1. 01 / TRACE. Large 01. Stat: 7 ordered events. Copy: “Capture the full execution path, from the first retrieval to the final response.” Detail: trace-8f21c9a4. Tags: RETRIEVAL, MODEL, TOOL CALL. Blue accent.
+  1. 01 / TRACE. Large 01. Stat: 8 ordered events. Copy: “Capture the full execution path, from the first retrieval to the final response.” Detail: trace-8f21c9a4. Tags: RETRIEVAL, MODEL, TOOL CALL. Blue accent.
   2. 02 / EVIDENCE. Large 02. Stat: 0.94 top evidence score. Copy: “Make every decision explainable with ranked documents, policy rules, and evaluator signals.” Detail: POL-114 · rank #1. Tags: CITATIONS, GROUNDING, RCA. Violet accent.
   3. 03 / TRUST. Large 03. Stat: 86.4% reliability score. Copy: “Ship only what can be defended with repeatable gates and an auditable decision trail.” Detail: candidate / baseline. Tags: PASS, REVIEW, BLOCK. Mint accent.
 
@@ -134,7 +134,7 @@ SCENE 4 — RESEARCH / DEFENSE
 - Eyebrow: “BUILT FOR THE DEFENSE.”
 - Heading: “Operational clarity. Academic rigor.” Apply gradient to “Academic rigor.”
 - Copy: “Designed around falsifiable experiments, interpretable baselines, and a reviewer journey that can be demonstrated end-to-end.”
-- Four equal statistic cells separated by fine borders: 8 failure classes; Top-3 root-cause ranking; CI/CD quality gate; 2 reference applications.
+- Four equal statistic cells separated by fine borders: 8 failure classes; Up to 3 RCA candidates when assessed; CI/CD quality gate; 2 reference applications.
 
 SCENE 5 — TRUST / FINAL CTA
 - Centered full-viewport closing scene with a quiet radial blue glow.
@@ -428,7 +428,7 @@ Before declaring the recreation complete, verify all of the following:
 [ ] Overview includes all four metrics, trend chart, six failure classes, two application cards, and four gate rows.
 [ ] Applications includes both full configuration cards and six historical gate decisions.
 [ ] Trace Explorer includes all seven rows, live search, filters, and pagination.
-[ ] Trace Detail includes all seven timeline events and six graph nodes.
+[ ] Trace Detail includes all eight timeline events and six graph nodes.
 [ ] RAG Diagnostics includes query, answer, four retrieved documents, citations, expected evidence, both scores, and unsupported-claim alert.
 [ ] Failure & RCA includes summary, four analysis panels, reviewer strip, and disabled admin override.
 [ ] Release Gate includes verdict, baseline/candidate configuration, all five comparison rows, two critical cases, and explanatory footer.

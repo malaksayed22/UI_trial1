@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { DecisionBadge } from "@/components/ui/decision-badge";
 import { cn } from "@/lib/cn";
-import { TRACE_DURATION_MS, TRACE_ID, traceSpans, type SpanTone } from "./data";
+import { TRACE_DURATION_MS, TRACE_EVENT_COUNT, TRACE_ID, traceSpans, type SpanTone } from "./data";
 import { gsap, MOTION_OK, useGSAP } from "./motion";
 
 const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1] as const;
@@ -242,7 +242,7 @@ export const TraceReplay = () => {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5 font-mono text-[11px] text-faint sm:px-5">
-        <span>7 events · 3 of 6 evaluators failed</span>
+        <span>{TRACE_EVENT_COUNT} events · 3 of 6 evaluators failed</span>
         <span className="flex items-center gap-2 text-pass">
           <span aria-hidden className="size-1.5 rounded-full bg-pass" />
           trace integrity verified

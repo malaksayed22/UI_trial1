@@ -249,7 +249,7 @@ export const Screens = () => (
           number="06"
           name="Failure & RCA"
           title="From symptom to cause"
-          text="The primary failure, a ranked top-3 and the path to the decision."
+          text="Root-cause candidates and supporting events when assessed."
           href={routes.investigation(TRACE_ID)}
           className="lg:col-span-5"
         >

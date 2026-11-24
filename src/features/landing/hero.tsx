@@ -103,7 +103,7 @@ export const Hero = () => {
         <div className="mt-10 flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
           <p data-fade className="pre-anim max-w-[34rem] text-lg leading-relaxed text-muted">
             TrustOps reconstructs the hidden execution path behind every response, scores it with
-            evidence, ranks the root cause, and resolves each release to a decision your team can defend.
+            evidence, shows root-cause candidates when assessed, and resolves each release to a decision your team can defend.
           </p>
 
           <div data-fade className="pre-anim flex flex-wrap items-center gap-3">

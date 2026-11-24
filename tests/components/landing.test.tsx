@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { pipelineSteps, rigorStats, TRACE_EVENT_COUNT } from "@/features/landing/data";
+import { Hero } from "@/features/landing/hero";
 import { Method } from "@/features/landing/method";
 import { RcaNotAssessed } from "@/features/landing/rca-not-assessed";
 import { Screens } from "@/features/landing/screens";
@@ -119,5 +120,26 @@ describe("landing trace event count", () => {
   it("shows that caption in the story", () => {
     render(<Story />);
     expect(screen.getByText(/^Eight ordered events reconstructed/)).toBeInTheDocument();
+  });
+});
+
+describe("landing hero paragraph", () => {
+  const paragraph = () => {
+    render(<Hero />);
+    return screen.getByText(/reconstructs the hidden execution path/).textContent ?? "";
+  };
+
+  it("says the product shows root-cause candidates when assessed", () => {
+    expect(paragraph()).toContain("shows root-cause candidates when assessed");
+  });
+
+  it("does not say the product ranks the root cause", () => {
+    expect(paragraph()).not.toMatch(/ranks (the )?root cause/i);
+  });
+
+  it("keeps the rest of the sentence", () => {
+    expect(paragraph().replace(/\s+/g, " ")).toBe(
+      "TrustOps reconstructs the hidden execution path behind every response, scores it with evidence, shows root-cause candidates when assessed, and resolves each release to a decision your team can defend."
+    );
   });
 });

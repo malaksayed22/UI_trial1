@@ -245,18 +245,20 @@ Case heading: “TRACE-8F21C9A4 / PROCUREMENT AGENT,” H1 “PO approval-bypass
 Use a two-column desktop layout: wide timeline left and narrower execution graph right.
 
 ORDERED EXECUTION TIMELINE
-Panel title “Ordered execution timeline,” subtitle “7 events · 1.3s duration.” Connect numbered circular markers with a vertical line. Stagger rows into view.
+Panel title “Ordered execution timeline,” subtitle “8 events · 1.3s duration.” Connect numbered circular markers with a vertical line. Stagger rows into view.
 1. 09:41:02.114 — RETRIEVAL — Retrieved POL-114 — “Purchase approval threshold, Tier 2” — score 0.94 · retriever-v2.3.1-ada · 38ms.
 2. 09:41:02.980 — MODEL CALL — gpt-4.1-mini-v3 drafted workflow plan citing POL-114 — 312 tokens · 866ms.
-3. 09:41:03.001 — AGENT STATE — workflow_stage: request_captured → policy_checked.
-4. 09:41:03.114 — AGENT STATE — workflow_stage: policy_checked → PRE_APPROVAL — approval_received = false.
-5. 09:41:03.229 — TOOL CALL · PROPOSED — create_purchase_order proposed — $48,200, supplier SUP-2291.
-6. 09:41:03.241 — TOOL RESULT · BLOCKED — Policy engine: BLOCK — POL-114 requires Tier-2 approval first — rule: approval_required_before_po · policy-v1.4 · critical.
-7. 09:41:03.402 — FINAL RESPONSE — Response phrases PO as “submitted” — flagged unsupported claim — no create_purchase_order success event on trace.
+3. 09:41:02.990 — SUPPLIER DIRECTORY SNAPSHOT — SUP-2291: status NOT_APPROVED in record version v1 (synthetic) — source Supplier directory (fixture snapshot) · event ev-sup-1 · application-local, pending Mohab’s canonical mapping. Read before the policy check. It has an evidence link but no graph node.
+4. 09:41:03.001 — AGENT STATE — workflow_stage: request_captured → policy_checked.
+5. 09:41:03.114 — AGENT STATE — workflow_stage: policy_checked → PRE_APPROVAL — approval_received = false.
+6. 09:41:03.229 — TOOL CALL · PROPOSED — create_purchase_order proposed — $48,200, supplier SUP-2291.
+7. 09:41:03.241 — TOOL RESULT · BLOCKED — Policy engine: BLOCK — POL-114 requires Tier-2 approval first — rule: approval_required_before_po · policy-v1.4 · critical.
+8. 09:41:03.402 — FINAL RESPONSE — Response phrases PO as “submitted” — flagged unsupported claim — no create_purchase_order success event on trace.
 
 EXECUTION GRAPH
-Panel title “Execution graph,” subtitle “Backend-derived event relationships,” network icon. Stack six connected bordered nodes:
-01 retrieval: POL-114; 02 model_call: plan drafted; 03 agent_state: PRE_APPROVAL; 04 tool_call: create_purchase_order with dashed amber border; 05 tool_result: BLOCKED in rose; 06 final_response: flagged in amber.
+Panel title “Execution graph,” subtitle “Backend-derived event relationships,” network icon. Stack seven connected bordered nodes (n1 to n7):
+n1 retrieval: Retrieved POL-114 (ev-1); n2 model_call: Plan drafted (ev-2); n3 agent_state: PRE_APPROVAL (ev-4); n4 approval: Tier-2 approval, state missing, dashed outline, no event ID; n5 tool_call: create_purchase_order with dashed amber border (ev-5); n6 tool_result: Tool blocked, in rose (ev-6); n7 final_response: Claims PO submitted, flagged in amber (ev-7).
+The supplier directory snapshot (ev-sup-1) has no graph node.
 Legend: ✓ pass, ◆ proposed, × blocked, ◈ model.
 
 On mobile stack the graph after the timeline.
@@ -428,7 +430,7 @@ Before declaring the recreation complete, verify all of the following:
 [ ] Overview includes all four metrics, trend chart, six failure classes, two application cards, and four gate rows.
 [ ] Applications includes both full configuration cards and six historical gate decisions.
 [ ] Trace Explorer includes all seven rows, live search, filters, and pagination.
-[ ] Trace Detail includes all eight timeline events and six graph nodes.
+[ ] Trace Detail includes all eight timeline events and seven graph nodes.
 [ ] RAG Diagnostics includes query, answer, four retrieved documents, citations, expected evidence, both scores, and unsupported-claim alert.
 [ ] Failure & RCA includes summary, four analysis panels, reviewer strip, and disabled admin override.
 [ ] Release Gate includes verdict, baseline/candidate configuration, all five comparison rows, two critical cases, and explanatory footer.

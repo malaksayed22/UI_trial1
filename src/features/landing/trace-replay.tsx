@@ -241,8 +241,13 @@ export const TraceReplay = () => {
         </aside>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5 font-mono text-[11px] text-faint sm:px-5">
-        <span>{TRACE_EVENT_COUNT} events · 3 of 6 evaluators failed</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-line px-4 py-2.5 font-mono text-[11px] text-faint sm:px-5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span data-footer-events>
+            {TRACE_EVENT_COUNT} total events · {traceSpans.length} shown
+          </span>
+          <span data-footer-evaluators>3 of 6 evaluators failed</span>
+        </div>
         <span className="flex items-center gap-2 text-pass">
           <span aria-hidden className="size-1.5 rounded-full bg-pass" />
           trace integrity verified

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { pipelineSteps, rigorStats, TRACE_EVENT_COUNT } from "@/features/landing/data";
+import { pipelineSteps, rigorStats, TRACE_EVENT_COUNT, traceSpans } from "@/features/landing/data";
 import { Hero } from "@/features/landing/hero";
 import { Method } from "@/features/landing/method";
 import { RcaNotAssessed } from "@/features/landing/rca-not-assessed";
@@ -20,6 +20,20 @@ vi.mock("@/features/landing/motion", () => ({
   ScrollTrigger: {},
   SplitText: {},
 }));
+
+// Lets tests shorten traceSpans and change TRACE_EVENT_COUNT to prove the footer follows both.
+const spanLimit = vi.hoisted(() => ({ value: null as number | null, total: null as number | null }));
+vi.mock("@/features/landing/data", async importOriginal => {
+  const actual = await importOriginal<typeof import("@/features/landing/data")>();
+  const mocked = Object.defineProperty({ ...actual }, "traceSpans", {
+    enumerable: true,
+    get: () => (spanLimit.value === null ? actual.traceSpans : actual.traceSpans.slice(0, spanLimit.value)),
+  });
+  return Object.defineProperty(mocked, "TRACE_EVENT_COUNT", {
+    enumerable: true,
+    get: () => spanLimit.total ?? actual.TRACE_EVENT_COUNT,
+  });
+});
 
 const NOT_ASSESSED = "RCA not assessed for this synthetic boundary case";
 const OLD_CAUSE_PATTERN = /0\.91|0\.74|0\.52|agent_workflow|policy_configuration/;
@@ -110,13 +124,6 @@ describe("landing trace event count", () => {
     );
   });
 
-  it("uses the timeline length for the count shown in the hero replay footer", () => {
-    expect(TRACE_EVENT_COUNT).toBe(traceDetails["trace-8f21c9a4"]!.events.length);
-    render(<TraceReplay />);
-    expect(screen.getByText(`${TRACE_EVENT_COUNT} events · 3 of 6 evaluators failed`)).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/7 events/);
-  });
-
   it("shows that caption in the story", () => {
     render(<Story />);
     expect(screen.getByText(/^Eight ordered events reconstructed/)).toBeInTheDocument();
@@ -141,5 +148,64 @@ describe("landing hero paragraph", () => {
     expect(paragraph().replace(/\s+/g, " ")).toBe(
       "TrustOps reconstructs the hidden execution path behind every response, scores it with evidence, shows root-cause candidates when assessed, and resolves each release to a decision your team can defend."
     );
+  });
+});
+
+describe("hero replay footer", () => {
+  const eventsText = () => document.querySelector("[data-footer-events]")?.textContent;
+
+  it("reads exactly '8 total events · 6 shown', with a middle dot between spaces", () => {
+    render(<TraceReplay />);
+    expect(eventsText()).toBe("8 total events · 6 shown");
+    expect(eventsText()).toContain(" · ");
+    expect(screen.getByText("8 total events · 6 shown")).toBeInTheDocument();
+  });
+
+  it("takes the total from TRACE_EVENT_COUNT and the trace-8f21c9a4 timeline length", () => {
+    render(<TraceReplay />);
+    expect(TRACE_EVENT_COUNT).toBe(traceDetails["trace-8f21c9a4"]!.events.length);
+    expect(eventsText()).toMatch(new RegExp(`^${TRACE_EVENT_COUNT} total events`));
+  });
+
+  it("makes the total follow TRACE_EVENT_COUNT, not a fixed number", () => {
+    spanLimit.total = 9;
+    try {
+      render(<TraceReplay />);
+      expect(eventsText()).toBe(`9 total events · ${traceSpans.length} shown`);
+    } finally {
+      spanLimit.total = null;
+    }
+  });
+
+  it("takes the shown count from traceSpans.length", () => {
+    render(<TraceReplay />);
+    expect(eventsText()).toMatch(new RegExp(` ${traceSpans.length} shown$`));
+  });
+
+  it("makes the shown count follow the traceSpans array, not a fixed number", () => {
+    spanLimit.value = 4;
+    try {
+      render(<TraceReplay />);
+      expect(eventsText()).toBe(`${TRACE_EVENT_COUNT} total events · 4 shown`);
+    } finally {
+      spanLimit.value = null;
+    }
+  });
+
+  it("keeps the evaluator summary as its own element, with its wording unchanged", () => {
+    render(<TraceReplay />);
+    const events = document.querySelector("[data-footer-events]")!;
+    const evaluators = document.querySelector("[data-footer-evaluators]");
+    expect(evaluators?.textContent).toBe("3 of 6 evaluators failed");
+    expect(evaluators).not.toBe(events);
+    expect(events.contains(evaluators)).toBe(false);
+    expect(evaluators?.contains(events)).toBe(false);
+    expect(events.textContent).not.toMatch(/evaluator/);
+  });
+
+  it("no longer shows the old '8 events' footer", () => {
+    render(<TraceReplay />);
+    expect(document.body.textContent).not.toMatch(/\b8 events/);
+    expect(document.body.textContent).not.toMatch(/\b7 events/);
   });
 });

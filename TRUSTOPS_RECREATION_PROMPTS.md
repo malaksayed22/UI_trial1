@@ -105,7 +105,7 @@ SCENE 1 — HERO / VISIBLE
 - Primary CTA: “Explore the Signal Room ↗” → /overview. Secondary CTA: “See how it works →” → #workflow.
 - Proof row: 3,038 traces evaluated; 86.4% reliability score; 7 investigation screens.
 - Console mockup title bar: three window dots, “signal-room / live-trace / 8f21c9a4,” green LIVE.
-- Console case: eyebrow “ACTIVE INVESTIGATION / PROCUREMENT AGENT,” title “Approval-bypass attempt,” BLOCK pill, metadata “app-v2.4.1,” “7 ordered events,” “1.3s duration.”
+- Console case: eyebrow “ACTIVE INVESTIGATION / PROCUREMENT AGENT,” title “Approval-bypass attempt,” BLOCK pill, metadata “app-v2.4.1,” “8 ordered events,” “1.3s duration.”
 - Timeline cards: RETRIEVAL / POL-114 / score 0.94 / ✓; MODEL CALL / Plan drafted / 312 tokens · 866ms / ✓; AGENT STATE / PRE_APPROVAL / approval_received = false / !; POLICY ENGINE / Action blocked / approval_required_before_po / ×.
 - Right-side gauge: “DECISION SIGNAL,” 0.93 confidence, BLOCK, critical finding.
 - Console footer: “trace integrity verified” and “evidence graph synced · 2s ago.” Caption: “TRUSTOPS TRACE VIEW” and “01 / 07 SCREENS.”
@@ -116,7 +116,7 @@ SCENE 2 — SYSTEM / EVIDENCE
 - Heading: “AI is only as trustworthy as its evidence.” Apply the gradient to “evidence.”
 - Copy: “Final answers are not enough. TrustOps reconstructs the path behind every response, tool call, retrieval, and policy decision.”
 - Three large interactive cards. Default selected card is Evidence; selecting or hovering a card adds a brighter border and lift.
-  1. 01 / TRACE. Large 01. Stat: 7 ordered events. Copy: “Capture the full execution path, from the first retrieval to the final response.” Detail: trace-8f21c9a4. Tags: RETRIEVAL, MODEL, TOOL CALL. Blue accent.
+  1. 01 / TRACE. Large 01. Stat: 8 ordered events. Copy: “Capture the full execution path, from the first retrieval to the final response.” Detail: trace-8f21c9a4. Tags: RETRIEVAL, MODEL, TOOL CALL. Blue accent.
   2. 02 / EVIDENCE. Large 02. Stat: 0.94 top evidence score. Copy: “Make every decision explainable with ranked documents, policy rules, and evaluator signals.” Detail: POL-114 · rank #1. Tags: CITATIONS, GROUNDING, RCA. Violet accent.
   3. 03 / TRUST. Large 03. Stat: 86.4% reliability score. Copy: “Ship only what can be defended with repeatable gates and an auditable decision trail.” Detail: candidate / baseline. Tags: PASS, REVIEW, BLOCK. Mint accent.
 
@@ -134,7 +134,7 @@ SCENE 4 — RESEARCH / DEFENSE
 - Eyebrow: “BUILT FOR THE DEFENSE.”
 - Heading: “Operational clarity. Academic rigor.” Apply gradient to “Academic rigor.”
 - Copy: “Designed around falsifiable experiments, interpretable baselines, and a reviewer journey that can be demonstrated end-to-end.”
-- Four equal statistic cells separated by fine borders: 8 failure classes; Top-3 root-cause ranking; CI/CD quality gate; 2 reference applications.
+- Four equal statistic cells separated by fine borders: 8 failure classes; Up to 3 RCA candidates when assessed; CI/CD quality gate; 2 reference applications.
 
 SCENE 5 — TRUST / FINAL CTA
 - Centered full-viewport closing scene with a quiet radial blue glow.
@@ -245,18 +245,20 @@ Case heading: “TRACE-8F21C9A4 / PROCUREMENT AGENT,” H1 “PO approval-bypass
 Use a two-column desktop layout: wide timeline left and narrower execution graph right.
 
 ORDERED EXECUTION TIMELINE
-Panel title “Ordered execution timeline,” subtitle “7 events · 1.3s duration.” Connect numbered circular markers with a vertical line. Stagger rows into view.
+Panel title “Ordered execution timeline,” subtitle “8 events · 1.3s duration.” Connect numbered circular markers with a vertical line. Stagger rows into view.
 1. 09:41:02.114 — RETRIEVAL — Retrieved POL-114 — “Purchase approval threshold, Tier 2” — score 0.94 · retriever-v2.3.1-ada · 38ms.
 2. 09:41:02.980 — MODEL CALL — gpt-4.1-mini-v3 drafted workflow plan citing POL-114 — 312 tokens · 866ms.
-3. 09:41:03.001 — AGENT STATE — workflow_stage: request_captured → policy_checked.
-4. 09:41:03.114 — AGENT STATE — workflow_stage: policy_checked → PRE_APPROVAL — approval_received = false.
-5. 09:41:03.229 — TOOL CALL · PROPOSED — create_purchase_order proposed — $48,200, supplier SUP-2291.
-6. 09:41:03.241 — TOOL RESULT · BLOCKED — Policy engine: BLOCK — POL-114 requires Tier-2 approval first — rule: approval_required_before_po · policy-v1.4 · critical.
-7. 09:41:03.402 — FINAL RESPONSE — Response phrases PO as “submitted” — flagged unsupported claim — no create_purchase_order success event on trace.
+3. 09:41:02.990 — SUPPLIER DIRECTORY SNAPSHOT — SUP-2291: status NOT_APPROVED in record version v1 (synthetic) — source Supplier directory (fixture snapshot) · event ev-sup-1 · application-local, pending Mohab’s canonical mapping. Read before the policy check. It has an evidence link but no graph node.
+4. 09:41:03.001 — AGENT STATE — workflow_stage: request_captured → policy_checked.
+5. 09:41:03.114 — AGENT STATE — workflow_stage: policy_checked → PRE_APPROVAL — approval_received = false.
+6. 09:41:03.229 — TOOL CALL · PROPOSED — create_purchase_order proposed — $48,200, supplier SUP-2291.
+7. 09:41:03.241 — TOOL RESULT · BLOCKED — Policy engine: BLOCK — POL-114 requires Tier-2 approval first — rule: approval_required_before_po · policy-v1.4 · critical.
+8. 09:41:03.402 — FINAL RESPONSE — Response phrases PO as “submitted” — flagged unsupported claim — no create_purchase_order success event on trace.
 
 EXECUTION GRAPH
-Panel title “Execution graph,” subtitle “Backend-derived event relationships,” network icon. Stack six connected bordered nodes:
-01 retrieval: POL-114; 02 model_call: plan drafted; 03 agent_state: PRE_APPROVAL; 04 tool_call: create_purchase_order with dashed amber border; 05 tool_result: BLOCKED in rose; 06 final_response: flagged in amber.
+Panel title “Execution graph,” subtitle “Backend-derived event relationships,” network icon. Stack seven connected bordered nodes (n1 to n7):
+n1 retrieval: Retrieved POL-114 (ev-1); n2 model_call: Plan drafted (ev-2); n3 agent_state: PRE_APPROVAL (ev-4); n4 approval: Tier-2 approval, state missing, dashed outline, no event ID; n5 tool_call: create_purchase_order with dashed amber border (ev-5); n6 tool_result: Tool blocked, in rose (ev-6); n7 final_response: Claims PO submitted, flagged in amber (ev-7).
+The supplier directory snapshot (ev-sup-1) has no graph node.
 Legend: ✓ pass, ◆ proposed, × blocked, ◈ model.
 
 On mobile stack the graph after the timeline.
@@ -310,8 +312,6 @@ Below it, a four-column desktop grid of equal panels:
 - approval_required_before_po
 - workflow_stage must equal ‘approved’ before create_purchase_order
 - criticality: critical in rose
-- supplier_tier_check: SUP-2291 requires secondary review above $25,000
-- criticality: high in amber
 
 2. EVALUATOR EVIDENCE — subtitle “Scores are not ground truth.”
 - Semantic evaluator 0.88: Draft response asserts PO “submitted” without a completed create_purchase_order success event.
@@ -319,9 +319,7 @@ Below it, a four-column desktop grid of equal panels:
 - Security evaluator n/a: No attack pattern detected.
 
 3. TOP-3 RCA CAUSES — subtitle “Evidence-ranked candidates.”
-- 01 Approval requirement bypassed — tool called at PRE_APPROVAL stage — evidence score 0.91.
-- 02 Missing approval_received flag before tool proposal — evidence score 0.74.
-- 03 Supplier tier threshold not re-checked after amount increase — evidence score 0.52.
+- No ranked causes or scores. Show the message “RCA not assessed for this synthetic boundary case”.
 
 4. DECISION PATH — subtitle “Why the final verdict won.”
 - → workflow_stage = PRE_APPROVAL at time of tool call.
@@ -432,7 +430,7 @@ Before declaring the recreation complete, verify all of the following:
 [ ] Overview includes all four metrics, trend chart, six failure classes, two application cards, and four gate rows.
 [ ] Applications includes both full configuration cards and six historical gate decisions.
 [ ] Trace Explorer includes all seven rows, live search, filters, and pagination.
-[ ] Trace Detail includes all seven timeline events and six graph nodes.
+[ ] Trace Detail includes all eight timeline events and seven graph nodes.
 [ ] RAG Diagnostics includes query, answer, four retrieved documents, citations, expected evidence, both scores, and unsupported-claim alert.
 [ ] Failure & RCA includes summary, four analysis panels, reviewer strip, and disabled admin override.
 [ ] Release Gate includes verdict, baseline/candidate configuration, all five comparison rows, two critical cases, and explanatory footer.

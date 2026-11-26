@@ -8,11 +8,11 @@ import {
   gateMetrics,
   graphNodes,
   pipelineSteps,
-  rootCauses,
   type NodeState,
 } from "./data";
 import { gsap, PINNED_STORY, useGSAP } from "./motion";
 import { Eyebrow } from "./primitives";
+import { RcaNotAssessed } from "./rca-not-assessed";
 
 const nodeStyle: Record<NodeState, { dot: string; text: string; tag: string }> = {
   ok: { dot: "bg-pass", text: "text-ink", tag: "ok" },
@@ -94,30 +94,7 @@ const EvidencePanel = () => (
   </ul>
 );
 
-const CausePanel = () => (
-  <ul className="space-y-3">
-    {rootCauses.map(cause => (
-      <li key={cause.cause} className="rounded-xl border border-line bg-canvas/50 p-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-6 items-center justify-center rounded-full bg-ink font-mono text-xs font-medium text-canvas">
-            {cause.rank}
-          </span>
-          <span className="font-mono text-sm text-ink">{cause.cause}</span>
-          <span className="ml-auto font-mono text-sm tabular-nums text-ink">{cause.score.toFixed(2)}</span>
-        </div>
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-raised">
-          <div
-            data-fill
-            className={cn("h-full origin-left rounded-full", cause.rank === 1 ? "bg-ink" : "bg-muted/60")}
-            style={{ width: `${cause.score * 100}%` }}
-          />
-        </div>
-        <p className="mt-3 text-sm leading-relaxed text-muted">{cause.text}</p>
-        <p className="mt-1.5 font-mono text-[11px] text-faint">evidence: {cause.events}</p>
-      </li>
-    ))}
-  </ul>
-);
+const CausePanel = () => <RcaNotAssessed />;
 
 const GatePanel = () => (
   <div>

@@ -1,7 +1,6 @@
-import { Ban, CheckCircle2, CircleSlash } from "lucide-react";
 import Link from "next/link";
 import { DecisionBadge } from "@/components/ui/decision-badge";
-import { Tag } from "@/components/ui/tag";
+import { PolicyVerdictTag } from "@/components/ui/policy-verdict-tag";
 import {
   TableScroll,
   tableCellClass,
@@ -10,18 +9,7 @@ import {
 import { formatDateTime } from "@/lib/format";
 import { describeFailureLabel } from "@/lib/labels";
 import { routes } from "@/lib/routes";
-import type { PolicySecurityVerdict, TraceSummary } from "@/types";
-
-const PolicyVerdict = ({ verdict }: { verdict: PolicySecurityVerdict }) => {
-  switch (verdict) {
-    case "PASS":
-      return <Tag tone="pass" icon={CheckCircle2}>Pass</Tag>;
-    case "BLOCK":
-      return <Tag tone="block" icon={Ban}>Block</Tag>;
-    case "NOT_APPLICABLE":
-      return <Tag tone="neutral" icon={CircleSlash}>Not applicable</Tag>;
-  }
-};
+import type { TraceSummary } from "@/types";
 
 type TraceListProps = { traces: TraceSummary[] };
 
@@ -50,7 +38,7 @@ const TraceCards = ({ traces }: TraceListProps) => (
           <time dateTime={trace.startedAt} className="font-mono text-xs text-faint">
             {formatDateTime(trace.startedAt)}
           </time>
-          <PolicyVerdict verdict={trace.policySecurityVerdict} />
+          <PolicyVerdictTag verdict={trace.policySecurityVerdict} />
         </div>
       </li>
     ))}
@@ -98,7 +86,7 @@ const TraceRows = ({ traces }: TraceListProps) => (
               <DecisionBadge decision={trace.decision} size="sm" />
             </td>
             <td className={tableCellClass}>
-              <PolicyVerdict verdict={trace.policySecurityVerdict} />
+              <PolicyVerdictTag verdict={trace.policySecurityVerdict} />
             </td>
           </tr>
         ))}

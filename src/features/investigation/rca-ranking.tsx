@@ -2,47 +2,62 @@ import { EvidenceLinks } from "@/components/ui/evidence-link";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { formatScore } from "@/lib/format";
 import { rootCauseText } from "@/lib/labels";
-import type { RcaCause } from "@/types";
+import type { RcaCause, RcaNotAssessed } from "@/types";
 
-type RcaRankingProps = { traceId: string; causes: RcaCause[] };
+type RcaRankingProps = { traceId: string; causes: RcaCause[] | RcaNotAssessed };
 
-/** Shows the API order and scores exactly; nothing is re-ranked or rescaled. */
-export const RcaRanking = ({ traceId, causes }: RcaRankingProps) => (
-  <Panel aria-labelledby="rca-heading">
-    <PanelHeader
-      headingId="rca-heading"
-      title="Top-3 root-cause candidates"
-      subtitle="Evidence-ranked. Scores are evidence scores, not calibrated probabilities."
-    />
-    {causes.length === 0 ? (
-      <p className="text-sm text-muted">
-        No failure was found on this trace, so no root causes are ranked.
-      </p>
-    ) : (
-      <ol className="space-y-4">
-        {causes.map(cause => (
-          <li key={cause.rank} className="flex gap-3">
-            <span className="mt-0.5 font-mono text-sm text-info">
-              {String(cause.rank).padStart(2, "0")}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm font-medium text-ink">
-                  {rootCauseText[cause.causeId]}
-                </p>
-                <p className="font-mono text-xs text-muted">
-                  evidence score{" "}
-                  <span className="text-ink tabular-nums">{formatScore(cause.evidenceScore)}</span>
-                </p>
+/**
+ * Shows the API order and scores exactly; nothing is re-ranked or rescaled.
+ * "Not assessed" (RCA was not run) is a different state from an empty list
+ * (a failure was looked for and none was found), and they read differently.
+ */
+export const RcaRanking = ({ traceId, causes }: RcaRankingProps) => {
+  if (!Array.isArray(causes)) {
+    return (
+      <Panel aria-labelledby="rca-heading">
+        <PanelHeader headingId="rca-heading" title="Root-cause candidates" />
+        <p className="text-sm text-muted">{causes.message}</p>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel aria-labelledby="rca-heading">
+      <PanelHeader
+        headingId="rca-heading"
+        title="Top-3 root-cause candidates"
+        subtitle="Evidence-ranked. Scores are evidence scores, not calibrated probabilities."
+      />
+      {causes.length === 0 ? (
+        <p className="text-sm text-muted">
+          No failure was found on this trace, so no root causes are ranked.
+        </p>
+      ) : (
+        <ol className="space-y-4">
+          {causes.map(cause => (
+            <li key={cause.rank} className="flex gap-3">
+              <span className="mt-0.5 font-mono text-sm text-info">
+                {String(cause.rank).padStart(2, "0")}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-sm font-medium text-ink">
+                    {rootCauseText[cause.causeId]}
+                  </p>
+                  <p className="font-mono text-xs text-muted">
+                    evidence score{" "}
+                    <span className="text-ink tabular-nums">{formatScore(cause.evidenceScore)}</span>
+                  </p>
+                </div>
+                <p className="mt-1 text-sm text-muted">{cause.explanation}</p>
+                <div className="mt-1.5">
+                  <EvidenceLinks traceId={traceId} eventIds={cause.evidenceEventIds} />
+                </div>
               </div>
-              <p className="mt-1 text-sm text-muted">{cause.explanation}</p>
-              <div className="mt-1.5">
-                <EvidenceLinks traceId={traceId} eventIds={cause.evidenceEventIds} />
-              </div>
-            </div>
-          </li>
-        ))}
-      </ol>
-    )}
-  </Panel>
-);
+            </li>
+          ))}
+        </ol>
+      )}
+    </Panel>
+  );
+};

@@ -1,35 +1,33 @@
-export type AnswerSegment = { text: string; unsupported: boolean };
+import type { TextSpan } from "@/types";
+
+export type Segment<T> = { text: string; value: T | null };
 
 /**
- * Splits an answer so unsupported claims can be highlighted in place.
- * Matching is case-insensitive; claims not found verbatim are simply not
- * highlighted (they are still listed in the unsupported-claims alert).
+ * Splits `text` at the given spans so each can be rendered or highlighted in
+ * place. Spans come from the backend as exact offsets, so nothing is matched
+ * by searching. Spans that are out of range, empty or overlap an earlier span
+ * are dropped rather than guessed at.
  */
-export const segmentAnswer = (
-  answer: string,
-  unsupportedClaims: string[]
-): AnswerSegment[] => {
-  const lowered = answer.toLowerCase();
-  const ranges = unsupportedClaims
-    .map(claim => {
-      const start = lowered.indexOf(claim.toLowerCase());
-      return start === -1 ? null : { start, end: start + claim.length };
-    })
-    .filter((range): range is { start: number; end: number } => range !== null)
-    .sort((a, b) => a.start - b.start);
+export const splitBySpans = <T>(
+  text: string,
+  items: { span: TextSpan; value: T }[]
+): Segment<T>[] => {
+  const valid = items
+    .filter(({ span }) => span.start >= 0 && span.end <= text.length && span.start < span.end)
+    .sort((a, b) => a.span.start - b.span.start);
 
-  const segments: AnswerSegment[] = [];
+  const segments: Segment<T>[] = [];
   let cursor = 0;
-  for (const { start, end } of ranges) {
-    if (start < cursor) continue; // overlapping claim, already covered
-    if (start > cursor) {
-      segments.push({ text: answer.slice(cursor, start), unsupported: false });
+  for (const { span, value } of valid) {
+    if (span.start < cursor) continue;
+    if (span.start > cursor) {
+      segments.push({ text: text.slice(cursor, span.start), value: null });
     }
-    segments.push({ text: answer.slice(start, end), unsupported: true });
-    cursor = end;
+    segments.push({ text: text.slice(span.start, span.end), value });
+    cursor = span.end;
   }
-  if (cursor < answer.length) {
-    segments.push({ text: answer.slice(cursor), unsupported: false });
+  if (cursor < text.length) {
+    segments.push({ text: text.slice(cursor), value: null });
   }
-  return segments.length > 0 ? segments : [{ text: answer, unsupported: false }];
+  return segments.length > 0 ? segments : [{ text, value: null }];
 };

@@ -16,6 +16,8 @@ type TagProps = {
   tone?: TagTone;
   icon?: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   children: ReactNode;
+  /** Plain-language meaning, shown on hover. */
+  title?: string;
   className?: string;
 };
 
@@ -24,9 +26,11 @@ export const Tag = ({
   tone = "neutral",
   icon: Icon,
   children,
+  title,
   className,
 }: TagProps) => (
   <span
+    title={title}
     className={cn(
       "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium",
       toneClasses[tone],

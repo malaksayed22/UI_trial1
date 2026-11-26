@@ -11,7 +11,12 @@ export type RawSearchParams = Record<string, string | string[] | undefined>;
 
 const applications: readonly ApplicationId[] = ["procurement-agent", "rag-assistant"];
 const decisions: readonly Decision[] = ["PASS", "REVIEW", "BLOCK"];
-const verdicts: readonly PolicySecurityVerdict[] = ["PASS", "BLOCK", "NOT_APPLICABLE"];
+const verdicts: readonly PolicySecurityVerdict[] = [
+  "PASS",
+  "BLOCK",
+  "NOT_APPLICABLE",
+  "UNAVAILABLE",
+];
 const failureLabels = Object.keys(failureLabelText) as FailureLabel[];
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 

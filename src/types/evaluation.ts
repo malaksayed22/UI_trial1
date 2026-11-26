@@ -26,11 +26,16 @@ export type EvaluatorResult = {
   evidenceEventIds: string[];
 };
 
+/**
+ * `technical_failure` is an infrastructure fault; the others are quality
+ * outcomes. A retriever that missed the evidence is not a retriever that was down.
+ */
 export type RagFailureMode =
   | "none"
   | "retrieval_failure"
   | "weak_context"
-  | "unsupported_generation";
+  | "unsupported_generation"
+  | "technical_failure";
 
 export type ExpectedEvidence = {
   documentRef: string;
@@ -38,26 +43,80 @@ export type ExpectedEvidence = {
   rank: number | null;
 };
 
-export type CitationCheck = {
-  claim: string;
-  documentId: string | null;
-  status: "supported" | "unsupported";
+/** Half-open character range `[start, end)` over a string. */
+export type TextSpan = { start: number; end: number };
+
+export type SourcePassage = {
+  passageId: string;
+  /** Position inside the document, e.g. "§4.2 ¶1". */
+  locator: string;
+  text: string;
 };
+
+export type SourceDocument = {
+  sourceId: string;
+  version: string;
+  title: string;
+  passages: SourcePassage[];
+};
+
+export type ClaimCitation = {
+  sourceId: string;
+  documentVersion: string;
+  passageId: string;
+  /**
+   * Range of the passage text that supports the claim. Null when the model
+   * cited this passage but nothing in it supports the claim.
+   */
+  sourceSpan: TextSpan | null;
+};
+
+export type AnswerClaim = {
+  claimId: string;
+  text: string;
+  /** Where the claim sits in `RagDiagnostics.answer`. */
+  answerSpan: TextSpan;
+  status: "supported" | "unsupported";
+  /** Null when the model cited nothing for this claim. */
+  citation: ClaimCitation | null;
+  /** Why the claim is unsupported; null when supported. */
+  reason: string | null;
+};
+
+/**
+ * - `answered`: the model produced an answer.
+ * - `abstained`: the system chose not to answer. This is a decision.
+ * - `technical_failure`: a provider fault prevented retrieval or generation.
+ *   This is not a decision and says nothing about answer quality.
+ */
+export type RagOutcome =
+  | { kind: "answered" }
+  | { kind: "abstained"; reason: string }
+  | {
+      kind: "technical_failure";
+      stage: "retrieval" | "generation";
+      provider: string;
+      code: string;
+      message: string;
+      retryable: boolean;
+    };
 
 export type RagDiagnostics = {
   traceId: string;
   applicationName: string;
   query: string;
-  answer: string;
-  /** Substrings of `answer` that no retrieved document supports. */
-  unsupportedClaims: { claim: string; reason: string }[];
+  /** Raw model answer. Null when the model never produced one. */
+  answer: string | null;
+  outcome: RagOutcome;
   retrieverVersion: string;
   evaluatorVersion: string;
   /** Retrieval cut-off the retrieval metrics were computed at. */
   k: number;
   documents: RetrievedDocument[];
   expectedEvidence: ExpectedEvidence[];
-  citations: CitationCheck[];
+  /** Source text for every passage a claim cites. */
+  sources: SourceDocument[];
+  claims: AnswerClaim[];
   metrics: {
     groundedness: Measurement;
     /** Share of answer claims backed by a cited, retrieved document. */
@@ -89,6 +148,16 @@ export type RcaCause = {
   evidenceEventIds: string[];
 };
 
+/**
+ * RCA was deliberately not run for this trace. This is not the same as an empty
+ * cause list, which means a failure was looked for and none was found (or the
+ * trace is NORMAL). The message is shown to the user as written.
+ */
+export type RcaNotAssessed = {
+  status: "not_assessed";
+  message: string;
+};
+
 export type ClassifierKind = "rules" | "logistic_regression" | "xgboost";
 
 export type Investigation = {
@@ -104,8 +173,11 @@ export type Investigation = {
   ruleFindings: PolicyFinding[];
   evaluatorEvidence: EvaluatorResult[];
   securityFindings: SecurityFinding[];
-  /** Empty for NORMAL traces. */
-  rca: RcaCause[];
+  /**
+   * Ranked causes. An empty list means no failure was found (NORMAL traces).
+   * RcaNotAssessed means RCA was not run, which is a different statement.
+   */
+  rca: RcaCause[] | RcaNotAssessed;
   decisionPath: DecisionStep[];
   decision: Decision;
   reviewHistory: ReviewEntry[];

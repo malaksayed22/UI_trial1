@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { DecisionBadge } from "@/components/ui/decision-badge";
 import { cn } from "@/lib/cn";
-import { TRACE_DURATION_MS, TRACE_ID, traceSpans, type SpanTone } from "./data";
+import { TRACE_DURATION_MS, TRACE_EVENT_COUNT, TRACE_ID, traceSpans, type SpanTone } from "./data";
 import { gsap, MOTION_OK, useGSAP } from "./motion";
 
 const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1] as const;
@@ -30,7 +30,7 @@ const kindTone: Record<SpanTone, string> = {
 const findings = [
   { id: "PROC-APPROVAL-01", rule: "approval_required_before_po", level: "critical" },
   { id: "PROC-TOOL-STAGE-01", rule: "tool_requires_approved_stage", level: "critical" },
-  { id: "PROC-SUPPLIER-01", rule: "supplier_tier_check", level: "high" },
+  { id: "PROC-SUPPLIER-01", rule: "supplier_must_be_approved", level: "critical" },
 ] as const;
 
 const percentOf = (ms: number) => (ms / TRACE_DURATION_MS) * 100;
@@ -241,8 +241,13 @@ export const TraceReplay = () => {
         </aside>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5 font-mono text-[11px] text-faint sm:px-5">
-        <span>7 events · 3 of 6 evaluators failed</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-line px-4 py-2.5 font-mono text-[11px] text-faint sm:px-5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span data-footer-events>
+            {TRACE_EVENT_COUNT} total events · {traceSpans.length} shown
+          </span>
+          <span data-footer-evaluators>3 of 6 evaluators failed</span>
+        </div>
         <span className="flex items-center gap-2 text-pass">
           <span aria-hidden className="size-1.5 rounded-full bg-pass" />
           trace integrity verified

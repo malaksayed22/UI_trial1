@@ -1,10 +1,14 @@
 import type {
+  ApprovalStatus,
   ClassifierKind,
   Criticality,
+  DeliveryDisposition,
   EvaluatorFamily,
+  ExecutionStatus,
   FailureLabel,
   GraphRelation,
   PolicySecurityVerdict,
+  PolicyStage,
   RagFailureMode,
   RootCauseId,
 } from "@/types";
@@ -19,6 +23,9 @@ export const failureLabelText: Record<FailureLabel, string> = {
   weak_grounding: "Weak grounding",
   prompt_injection_detected: "Prompt injection detected",
   tool_argument_malformed: "Tool argument malformed",
+  unknown_side_effect: "Unknown side effect",
+  tool_not_dispatched: "Tool not dispatched",
+  provider_failure: "Provider failure",
 };
 
 /** Accepts labels outside the known union (e.g. a newer taxonomy version). */
@@ -36,6 +43,9 @@ export const rootCauseText: Record<RootCauseId, string> = {
   policy_configuration: "Policy configuration",
   malicious_input: "Malicious input",
 };
+
+/** Shown wherever RCA was deliberately not run for a synthetic boundary case. */
+export const RCA_NOT_ASSESSED_SYNTHETIC_TEXT = "RCA not assessed for this synthetic boundary case";
 
 export const classifierText: Record<ClassifierKind, string> = {
   rules: "Deterministic rules",
@@ -63,6 +73,43 @@ export const policySecurityText: Record<PolicySecurityVerdict, string> = {
   PASS: "Pass",
   BLOCK: "Block",
   NOT_APPLICABLE: "Not applicable",
+  UNAVAILABLE: "Unavailable",
+};
+
+export const policySecurityMeaning: Record<PolicySecurityVerdict, string> = {
+  PASS: "Policy and security checks ran and passed",
+  BLOCK: "A policy or security check failed",
+  NOT_APPLICABLE: "These checks do not apply to this trace",
+  UNAVAILABLE: "A check could not run. This is not a pass",
+};
+
+export const approvalStatusText: Record<ApprovalStatus, string> = {
+  pending: "Pending",
+  approved: "Approved",
+  denied: "Denied",
+  cancelled: "Cancelled",
+};
+
+export const policyStageText: Record<PolicyStage, string> = {
+  not_applicable: "Not applicable",
+  not_evaluated: "Not evaluated",
+  gate_passed: "Gate passed",
+  gate_blocked: "Gate blocked",
+};
+
+export const executionStatusText: Record<ExecutionStatus, string> = {
+  not_applicable: "Not applicable",
+  not_executed: "Not executed",
+  executed: "Executed",
+  failed: "Failed",
+  outcome_unknown: "Outcome unknown",
+};
+
+export const deliveryDispositionText: Record<DeliveryDisposition, string> = {
+  unchanged: "Delivered unchanged",
+  corrected: "Corrected before delivery",
+  suppressed: "Suppressed and replaced",
+  no_candidate: "No model candidate",
 };
 
 export const relationText: Record<GraphRelation, string> = {
@@ -95,5 +142,10 @@ export const ragFailureModeText: Record<
     title: "Unsupported generation",
     description:
       "Relevant evidence was retrieved, but the answer adds claims that no document supports.",
+  },
+  technical_failure: {
+    title: "Technical failure",
+    description:
+      "A provider fault stopped the pipeline. Nothing can be concluded about retrieval or answer quality.",
   },
 };

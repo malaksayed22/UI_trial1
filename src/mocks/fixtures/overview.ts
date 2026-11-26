@@ -71,6 +71,13 @@ const trend: TrendPoint[] = trendValues.pass.map((pass, index) => {
   };
 });
 
+/**
+ * FIXTURE-ONLY. These are hand-written, corpus-scale totals for a 30-day
+ * window. They are deliberately not derived from `traceSummaries`: the
+ * explorer holds a small reviewed sample (including trace-a8c63e15), and the
+ * numbers below describe a much larger population. The overview page says so.
+ * They reconcile with each other, not with the explorer list.
+ */
 export const overviewSummary: OverviewSummary = {
   windowDays: 30,
   traceCount: 3038,

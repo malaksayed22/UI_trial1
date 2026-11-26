@@ -92,17 +92,20 @@ export const Method = () => {
           {MANIFESTO}
         </p>
 
-        <dl className="mt-24 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
-          {rigorStats.map(stat => (
-            <div key={stat.label} data-reveal className="bg-canvas p-6 sm:p-8">
-              <dd className="text-5xl font-medium tracking-[-0.04em] sm:text-6xl">
-                <CountUp to={stat.value} decimals={stat.decimals} suffix={stat.suffix} />
-              </dd>
-              <dt className="mt-4 text-[15px] text-ink">{stat.label}</dt>
-              <dd className="mt-1 font-mono text-[11px] uppercase tracking-widest text-faint">{stat.note}</dd>
-            </div>
-          ))}
-        </dl>
+        <div className="mt-24">
+          <p className="mb-3 font-mono text-[11px] tracking-widest text-faint">Illustrative fixture data</p>
+          <dl className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+            {rigorStats.map(stat => (
+              <div key={stat.label} data-reveal className="bg-canvas p-6 sm:p-8">
+                <dd className="text-5xl font-medium tracking-[-0.04em] sm:text-6xl">
+                  <CountUp to={stat.value} decimals={stat.decimals} suffix={stat.suffix} />
+                </dd>
+                <dt className="mt-4 text-[15px] text-ink">{stat.label}</dt>
+                <dd className="mt-1 font-mono text-[11px] uppercase tracking-widest text-faint">{stat.note}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
 
         <ul className="mt-16 grid gap-10 md:grid-cols-3">
           {principles.map((principle, index) => (

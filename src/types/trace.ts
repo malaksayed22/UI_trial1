@@ -1,6 +1,13 @@
 import type { ApplicationId, Decision, VersionSet } from "./common";
 import type { EvaluatorResult } from "./evaluation";
-import type { PolicyFinding, SecurityFinding } from "./governance";
+import type {
+  ActionRecord,
+  ApprovalRecord,
+  ResponseDelivery,
+  StateTransition,
+  TraceStatus,
+} from "./execution";
+import type { PolicyFinding, SecurityFinding, SupplierLookup } from "./governance";
 
 /**
  * Failure labels from taxonomy v1, as used by the UI. The taxonomy is owned
@@ -13,9 +20,20 @@ export type FailureLabel =
   | "retrieval_failure"
   | "weak_grounding"
   | "prompt_injection_detected"
-  | "tool_argument_malformed";
+  | "tool_argument_malformed"
+  | "unknown_side_effect"
+  | "tool_not_dispatched"
+  | "provider_failure";
 
-export type PolicySecurityVerdict = "PASS" | "BLOCK" | "NOT_APPLICABLE";
+/**
+ * PASS, NOT_APPLICABLE and UNAVAILABLE are different statements: passed,
+ * never applicable, and could not be evaluated. UNAVAILABLE is never a PASS.
+ */
+export type PolicySecurityVerdict =
+  | "PASS"
+  | "BLOCK"
+  | "NOT_APPLICABLE"
+  | "UNAVAILABLE";
 
 export type TraceSummary = {
   traceId: string;
@@ -31,6 +49,8 @@ export type TraceSummary = {
 
 export type RetrievedDocument = {
   documentId: string;
+  /** Version of the document that was retrieved. */
+  version: string;
   title: string;
   score: number;
   rank: number;
@@ -51,6 +71,11 @@ export type RetrievalEvent = EventBase & {
   query: string;
   retrieverVersion: string;
   documents: RetrievedDocument[];
+  /**
+   * Set when the retrieval provider failed. An empty `documents` list with a
+   * null `failure` means retrieval ran and found nothing.
+   */
+  failure: { code: string; message: string } | null;
 };
 
 export type ModelCallEvent = EventBase & {
@@ -71,16 +96,29 @@ export type AgentStateEvent = EventBase & {
 export type ToolCallEvent = EventBase & {
   type: "tool_call";
   stage: "proposed";
+  actionId: string;
   tool: string;
   arguments: Record<string, string>;
 };
 
 export type ToolResultEvent = EventBase & {
   type: "tool_result";
+  actionId: string;
   tool: string;
-  outcome: "executed" | "blocked" | "failed";
+  /** `unconfirmed`: dispatched, but no confirmation came back. */
+  outcome: "executed" | "blocked" | "failed" | "unconfirmed";
   detail: string;
   policyFindingIds: string[];
+};
+
+/**
+ * APPLICATION-LOCAL, pending Mohab's canonical mapping. A trusted snapshot of
+ * the supplier directory, read before the policy check. It is the evidence a
+ * supplier finding cites; a tool proposal is not.
+ */
+export type SupplierDirectoryEvent = EventBase & {
+  type: "supplier_directory_snapshot";
+  lookup: SupplierLookup;
 };
 
 export type FinalResponseEvent = EventBase & {
@@ -95,6 +133,7 @@ export type TraceEvent =
   | AgentStateEvent
   | ToolCallEvent
   | ToolResultEvent
+  | SupplierDirectoryEvent
   | FinalResponseEvent;
 
 export type TraceEventType = TraceEvent["type"];
@@ -140,6 +179,12 @@ export type TraceGraph = {
   edges: GraphEdge[];
 };
 
+/** A fixture that forces a path the normal application would not take. */
+export type SyntheticBoundaryNote = {
+  kind: "synthetic_boundary_case";
+  text: string;
+};
+
 export type TraceDetail = {
   summary: TraceSummary;
   versions: VersionSet;
@@ -149,6 +194,17 @@ export type TraceDetail = {
   policyFindings: PolicyFinding[];
   securityFindings: SecurityFinding[];
   graph: TraceGraph;
+  status: TraceStatus;
+  actions: ActionRecord[];
+  approvals: ApprovalRecord[];
+  /**
+   * APPLICATION-LOCAL. Labels a fixture that forces a path the normal
+   * application would not take. Absent for ordinary traces.
+   */
+  scenarioNote?: SyntheticBoundaryNote;
+  /** TRD-22. Absent when the trace does not carry transition data. */
+  stateTransitions?: StateTransition[];
+  delivery: ResponseDelivery;
   availableViews: { rag: boolean; investigation: boolean };
 };
 

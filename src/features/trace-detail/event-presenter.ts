@@ -1,7 +1,10 @@
 import {
+  CircleHelp,
+  Database,
   GitCommitHorizontal,
   MessageSquare,
   Search,
+  SearchX,
   ShieldAlert,
   ShieldCheck,
   ShieldX,
@@ -23,6 +26,9 @@ export type EventPresentation = {
   facts: string[];
 };
 
+/** Supplier fields are the application's own, not canonical contract fields. */
+const APPLICATION_LOCAL_FACT = "application-local, pending Mohab's canonical mapping";
+
 const latencyFact = (latencyMs: number | null) =>
   latencyMs === null ? null : formatDuration(latencyMs);
 
@@ -37,12 +43,24 @@ const compact = (items: (string | null)[]) =>
 export const presentEvent = (event: TraceEvent): EventPresentation => {
   switch (event.type) {
     case "retrieval": {
+      if (event.failure) {
+        return {
+          label: "RETRIEVAL · FAILED",
+          tone: "block",
+          icon: SearchX,
+          headline: `Retrieval failed (${event.failure.code}): the provider returned no result`,
+          facts: compact([
+            event.retrieverVersion,
+            latencyFact(event.latencyMs),
+          ]),
+        };
+      }
       const top = event.documents[0];
       return {
         label: "RETRIEVAL",
         tone: "info",
         icon: Search,
-        headline: `Retrieved ${event.documents.map(d => d.documentId).join(", ") || "no documents"}`,
+        headline: `Retrieved ${event.documents.map(d => `${d.documentId} ${d.version}`).join(", ") || "no documents"}`,
         facts: compact([
           top ? `top score ${formatScore(top.score)}` : null,
           event.retrieverVersion,
@@ -89,6 +107,7 @@ export const presentEvent = (event: TraceEvent): EventPresentation => {
         executed: { label: "EXECUTED", tone: "pass", icon: ShieldCheck },
         blocked: { label: "BLOCKED", tone: "block", icon: ShieldX },
         failed: { label: "FAILED", tone: "block", icon: ShieldAlert },
+        unconfirmed: { label: "UNCONFIRMED", tone: "review", icon: CircleHelp },
       } as const;
       const { label, tone, icon } = outcome[event.outcome];
       return {
@@ -97,6 +116,34 @@ export const presentEvent = (event: TraceEvent): EventPresentation => {
         icon,
         headline: event.detail,
         facts: compact([event.tool, latencyFact(event.latencyMs)]),
+      };
+    }
+    case "supplier_directory_snapshot": {
+      const { lookup } = event;
+      if (lookup.kind === "record") {
+        const { record } = lookup;
+        return {
+          label: "SUPPLIER DIRECTORY SNAPSHOT",
+          tone: "info",
+          icon: Database,
+          headline: `${record.supplierId}: status ${record.status} in record version ${record.recordVersion} (synthetic)`,
+          facts: compact([
+            `source: ${record.source}`,
+            APPLICATION_LOCAL_FACT,
+            latencyFact(event.latencyMs),
+          ]),
+        };
+      }
+      // An unknown status and a failed lookup are never shown as NOT_APPROVED.
+      const failed = lookup.kind === "lookup_failed";
+      return {
+        label: failed ? "SUPPLIER DIRECTORY · LOOKUP FAILED" : "SUPPLIER DIRECTORY · STATUS UNKNOWN",
+        tone: "review",
+        icon: failed ? SearchX : CircleHelp,
+        headline: failed
+          ? `Supplier directory lookup failed for ${lookup.supplierId}: ${lookup.reason}`
+          : `Supplier directory has no known status for ${lookup.supplierId}: ${lookup.reason}`,
+        facts: compact([`source: ${lookup.source}`, APPLICATION_LOCAL_FACT]),
       };
     }
     case "final_response":
@@ -126,9 +173,17 @@ export const eventFields = (event: TraceEvent): [string, string][] => {
         ...common,
         ["Query", event.query],
         ["Retriever", event.retrieverVersion],
+        [
+          "Retrieval status",
+          event.failure
+            ? `Failed · ${event.failure.code} · ${event.failure.message}`
+            : event.documents.length === 0
+              ? "Ran, returned no documents"
+              : "Ran",
+        ],
         ...event.documents.map<[string, string]>(doc => [
           `Rank ${doc.rank}`,
-          `${doc.documentId} · ${doc.title} · score ${formatScore(doc.score)}`,
+          `${doc.documentId} ${doc.version} · ${doc.title} · score ${formatScore(doc.score)}`,
         ]),
       ];
     case "model_call":
@@ -155,6 +210,7 @@ export const eventFields = (event: TraceEvent): [string, string][] => {
       return [
         ...common,
         ["Tool", event.tool],
+        ["Action", event.actionId],
         ["Stage", event.stage],
         ...Object.entries(event.arguments).map<[string, string]>(
           ([key, value]) => [`Argument · ${key}`, value]
@@ -164,9 +220,38 @@ export const eventFields = (event: TraceEvent): [string, string][] => {
       return [
         ...common,
         ["Tool", event.tool],
+        ["Action", event.actionId],
         ["Outcome", event.outcome],
         ["Policy findings", event.policyFindingIds.join(", ") || "None"],
       ];
+    case "supplier_directory_snapshot": {
+      const { lookup } = event;
+      const mapping: [string, string] = ["Field mapping", APPLICATION_LOCAL_FACT];
+      if (lookup.kind === "record") {
+        const { record } = lookup;
+        return [
+          ...common,
+          ["Supplier ID", record.supplierId],
+          ["Supplier status", record.status],
+          ["Record version", `${record.recordVersion} · SYNTHETIC version`],
+          ["Source", record.source],
+          mapping,
+        ];
+      }
+      return [
+        ...common,
+        ["Supplier ID", lookup.supplierId],
+        [
+          "Lookup result",
+          lookup.kind === "lookup_failed"
+            ? "Lookup failed (no status was returned)"
+            : "Status unknown (no status was returned)",
+        ],
+        ["Reason", lookup.reason],
+        ["Source", lookup.source],
+        mapping,
+      ];
+    }
     case "final_response":
       return [...common, ["Flags", event.flags.join(", ") || "None"]];
   }

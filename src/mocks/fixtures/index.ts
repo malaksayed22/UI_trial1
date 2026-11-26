@@ -11,6 +11,38 @@ import {
   procurementBypassSummary,
 } from "./procurement-bypass";
 import {
+  procurementDeniedDetail,
+  procurementDeniedInvestigation,
+  procurementDeniedSummary,
+} from "./procurement-denied";
+import {
+  procurementNotDispatchedDetail,
+  procurementNotDispatchedInvestigation,
+  procurementNotDispatchedSummary,
+} from "./procurement-not-dispatched";
+import {
+  procurementRecoveredDetail,
+  procurementRecoveredInvestigation,
+  procurementRecoveredSummary,
+} from "./procurement-recovered";
+import {
+  procurementUnknownDetail,
+  procurementUnknownInvestigation,
+  procurementUnknownSummary,
+} from "./procurement-unknown-effect";
+import {
+  ragAbstentionDetail,
+  ragAbstentionDiagnostics,
+  ragAbstentionInvestigation,
+  ragAbstentionSummary,
+} from "./rag-abstention";
+import {
+  ragProviderFailureDetail,
+  ragProviderFailureDiagnostics,
+  ragProviderFailureInvestigation,
+  ragProviderFailureSummary,
+} from "./rag-provider-failure";
+import {
   procurementSuccessDetail,
   procurementSuccessInvestigation,
   procurementSuccessSummary,
@@ -74,6 +106,12 @@ export const traceSummaries: TraceSummary[] = [
   ragUnsupportedSummary,
   procurementSuccessSummary,
   ragRetrievalFailureSummary,
+  procurementRecoveredSummary,
+  procurementUnknownSummary,
+  procurementDeniedSummary,
+  procurementNotDispatchedSummary,
+  ragAbstentionSummary,
+  ragProviderFailureSummary,
   ...summaryOnly,
 ];
 
@@ -82,6 +120,12 @@ export const traceDetails: Record<string, TraceDetail> = {
   [ragUnsupportedSummary.traceId]: ragUnsupportedDetail,
   [procurementSuccessSummary.traceId]: procurementSuccessDetail,
   [ragRetrievalFailureSummary.traceId]: ragRetrievalFailureDetail,
+  [procurementRecoveredSummary.traceId]: procurementRecoveredDetail,
+  [procurementUnknownSummary.traceId]: procurementUnknownDetail,
+  [procurementDeniedSummary.traceId]: procurementDeniedDetail,
+  [procurementNotDispatchedSummary.traceId]: procurementNotDispatchedDetail,
+  [ragAbstentionSummary.traceId]: ragAbstentionDetail,
+  [ragProviderFailureSummary.traceId]: ragProviderFailureDetail,
 };
 
 export const investigations: Record<string, Investigation> = {
@@ -89,11 +133,19 @@ export const investigations: Record<string, Investigation> = {
   [ragUnsupportedSummary.traceId]: ragUnsupportedInvestigation,
   [procurementSuccessSummary.traceId]: procurementSuccessInvestigation,
   [ragRetrievalFailureSummary.traceId]: ragRetrievalFailureInvestigation,
+  [procurementRecoveredSummary.traceId]: procurementRecoveredInvestigation,
+  [procurementUnknownSummary.traceId]: procurementUnknownInvestigation,
+  [procurementDeniedSummary.traceId]: procurementDeniedInvestigation,
+  [procurementNotDispatchedSummary.traceId]: procurementNotDispatchedInvestigation,
+  [ragAbstentionSummary.traceId]: ragAbstentionInvestigation,
+  [ragProviderFailureSummary.traceId]: ragProviderFailureInvestigation,
 };
 
 export const ragDiagnostics: Record<string, RagDiagnostics> = {
   [ragUnsupportedSummary.traceId]: ragUnsupportedDiagnostics,
   [ragRetrievalFailureSummary.traceId]: ragRetrievalFailureDiagnostics,
+  [ragAbstentionSummary.traceId]: ragAbstentionDiagnostics,
+  [ragProviderFailureSummary.traceId]: ragProviderFailureDiagnostics,
 };
 
 export const knownVersions = [

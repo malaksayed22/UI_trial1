@@ -2,12 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ApiErrorNotice } from "@/components/ui/api-error-notice";
 import { Panel, PanelHeader } from "@/components/ui/panel";
+import { ActionLifecycle } from "@/features/execution/action-lifecycle";
+import { ApprovalRecords } from "@/features/execution/approval-records";
+import { StageBoundaries } from "@/features/execution/stage-boundaries";
+import { StateTransitions } from "@/features/execution/state-transitions";
 import { EvaluatorEvidence } from "@/features/evidence/evaluator-evidence";
 import { PolicyFindings } from "@/features/evidence/policy-findings";
 import { SecurityFindings } from "@/features/evidence/security-findings";
 import { TraceGraph } from "@/features/trace-graph/trace-graph";
 import { BackToExplorer } from "@/features/trace-detail/back-to-explorer";
+import { ScenarioNote } from "@/features/trace-detail/scenario-note";
+import { ResponseDeliveryPanel } from "@/features/trace-detail/response-delivery";
 import { TraceHeader } from "@/features/trace-detail/trace-header";
+import { TraceStatusPanel } from "@/features/trace-detail/trace-status";
 import { TraceTabs } from "@/features/trace-detail/trace-tabs";
 import { TraceTimeline } from "@/features/trace-detail/trace-timeline";
 import { api, settle } from "@/lib/api";
@@ -46,15 +53,38 @@ const TraceDetailPage = async ({ params }: TraceDetailPageProps) => {
       <TraceHeader trace={trace} />
       <TraceTabs traceId={traceId} current="detail" />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-        <TraceTimeline trace={trace} />
-        <TraceGraph traceId={traceId} graph={trace.graph} />
-      </div>
+      <div className="space-y-4">
+        {trace.scenarioNote && <ScenarioNote note={trace.scenarioNote} />}
+        <TraceStatusPanel status={trace.status} decision={trace.summary.decision} />
 
-      <div className="mt-4 space-y-4">
+        {trace.actions.length > 0 && (
+          <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+            <ActionLifecycle traceId={traceId} actions={trace.actions} approvals={trace.approvals} />
+            <ApprovalRecords approvals={trace.approvals} />
+          </div>
+        )}
+
+        {trace.stateTransitions && (
+          <StateTransitions traceId={traceId} transitions={trace.stateTransitions} />
+        )}
+        {trace.actions.some(action => action.stageAtBoundaries) && (
+          <StageBoundaries actions={trace.actions} />
+        )}
+
+        <ResponseDeliveryPanel traceId={traceId} delivery={trace.delivery} />
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+          <TraceTimeline trace={trace} />
+          <TraceGraph traceId={traceId} graph={trace.graph} />
+        </div>
+
         <EvaluatorEvidence traceId={traceId} results={trace.evaluators} />
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-          <PolicyFindings traceId={traceId} findings={trace.policyFindings} />
+          <PolicyFindings
+            traceId={traceId}
+            findings={trace.policyFindings}
+            events={trace.events}
+          />
           <SecurityFindings traceId={traceId} findings={trace.securityFindings} />
         </div>
 
